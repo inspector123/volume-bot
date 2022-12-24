@@ -3,8 +3,8 @@ const conn = mysql.createConnection({
  host: "127.0.0.1",
  port: 3306,
  user: "ethDBUser",
- password: "789789789Aa!",
- database: "ethswaps",
+ password: process.env.DB_PASSWORD,
+ database: process.env.DB_NAME,
  multipleStatements: true
 });
 
