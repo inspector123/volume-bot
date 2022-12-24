@@ -20,7 +20,11 @@ class ContractWatcher {
     }
 
     node() {
-
+        this.httpProvider.on('block', (block)=>{
+            //this.getLastBlock(block-2);
+            //getWallet();
+            
+        })
     }
 
 
@@ -36,7 +40,7 @@ class ContractWatcher {
                 const replacedText = ctx.message.text.replace(messageText, '')
                 console.log(replacedText)
 
-                const response = getBasicPrintout()
+                //const response = getBasicPrintout()
             
             }
             
@@ -57,6 +61,13 @@ class ContractWatcher {
     async createContracts() {
         return;
     }
+
+    async getLastBlock(block){
+        const response = await api.get(`/api/blocks/${block}`);
+        console.log(response.data.data)
+        return;
+    }
+
 
     async getBlocksfromTime(time){
         let blocks;
