@@ -15,21 +15,38 @@ export const getAllBlocks = (req, res, next) => {
 
 
    export const getBlock = (req, res, next) => {
-    if (!req.params.id) {
-      return next(new AppError("No block found", 404));
+    console.log(req.params)
+    if (!req.params.blockNumber) {
+       res.status(404).json({status: "failure", data, length: data?.length});
     }
-    conn.query(
-      "SELECT * FROM BlockEvents WHERE blockNumber = ?",
-      [req.params.id],
-      function (err, data, fields) {
-        if (err) return next(new AppError(err, 500));
-        res.status(200).json({
-          status: "success",
-          length: data?.length,
-          data: data,
-        });
-      }
-    );
+    if (!req.query.sortBySymbol) {
+      conn.query(
+        "SELECT symbol, contract, txHash, usdVolume, usdPrice, isBuy, router, v3Orv2, marketCap FROM BlockEvents WHERE blockNumber between (select max(blockNumber)-?) and (select max(blockNumber));",
+        [req.params.blockNumber],
+        function (err, data, fields) {
+          if (err) return next(new AppError(err, 500));
+          res.status(200).json({
+            status: "success",
+            length: data?.length,
+            data: data,
+          });
+        }
+      );
+    }
+    else {
+      conn.query(
+        "SELECT symbol, sum(usdVolume), max(contract) FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY symbol ORDER BY sum(usdVolume) desc;",
+        [req.params.blockNumber],
+        function (err, data, fields) {
+          if (err) return next(new AppError(err, 500));
+          res.status(200).json({
+            status: "success",
+            length: data?.length,
+            data: data,
+          });
+        }
+      );
+    }
    };
 export const getAllContracts = (req, res, next) => {
     conn.query("SELECT * FROM Contracts", function (err, data, fields) {

@@ -13,7 +13,8 @@ const {
     CHAT_ID_CHANNEL,
     CHAT_ID_CHANNEL_BETA, 
     CHAT_ID_DISCUSSION, 
-    VOLUME_BOT_KEY
+    VOLUME_BOT_KEY,
+    PORT
  } = process.env;
 const app = express();
 
@@ -26,13 +27,10 @@ app.all("*", (req, res, next) => {
  next(new AppError(`The URL ${req.originalUrl} does not exist`, 404));
 });
 app.use(errorHandler);
-const PORT = 3001;
 app.listen(PORT, () => {
  console.log(`server running on port ${PORT}`);
 });
 
-
-const testnetStatus = false
 const localNodeIp = "192.168.0.228"
 const httpPort = "9535"
 const wssPort = "9536"

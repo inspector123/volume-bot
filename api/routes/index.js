@@ -7,7 +7,7 @@ const router = express.Router();
 //blocks table
 router.route("/api/blocks").get(getAllBlocks)
 
-router.route("/api/blocks/:blockNumber")
+router.route("/api/blocks/from/:blockNumber")
     .get(getBlock)
 
 //contracts table
