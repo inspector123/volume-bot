@@ -12,29 +12,7 @@ export const getAllBlocks = (req, res, next) => {
     });
    };
 
-   
-  //for contract, what do i want to do?
 
-
-
-  //
- /*
-  checkIfContractsExist
-
-  find ones that do and ones that dont 
-
-  post ones that dont and update ones that do
-
-  perhaps for naive implementation, we simply getAllContracts and then...
-
-
-  what if you feed it contracts, have it select * from contracts, and then return the ones that don't match?
-
-
-  feed it an array of contracts, select * from contracts, filter by contracts in that list, then post the ones that didnt exist and put the ones that did?
-
-  ...
- */
 
    export const getBlock = (req, res, next) => {
     if (!req.params.id) {
@@ -53,14 +31,6 @@ export const getAllBlocks = (req, res, next) => {
       }
     );
    };
-
-         // function (err, data, fields) {
-      //   if (err) return;
-      //   res.status(201).json({
-      //     status: "success",
-      //     message: "block created!",
-      //   });
-      // }
 export const getAllContracts = (req, res, next) => {
     conn.query("SELECT * FROM Contracts", function (err, data, fields) {
       if(err) return next(new AppError(err))
@@ -89,9 +59,9 @@ export const getAllContracts = (req, res, next) => {
   //  };
 
   export const createContracts = async(req, res, next) => {
-    if (!req.body) return next(new AppError("No form data found", 404));
+    return next(new AppError("No form data found", 404));
     //first, use select query to filter out all the contracts that need to be updated, not created
-    conn.query(`INSERT INTO Contracts (symbol,contract,age,volume5m,volume15m,volume1h,volume1d,avgBuy5,avgBuy15,avgBuyH,BuyRatio5,BuyRatio15,BuyRatioH) VALUES(?);`.repeat(req.body.length),req.body.map(b=>Object.values(b)))
+    //conn.query(`INSERT INTO Contracts (symbol,contract,age,volume5m,volume15m,volume1h,volume1d,avgBuy5,avgBuy15,avgBuyH,BuyRatio5,BuyRatio15,BuyRatioH) VALUES(?);`.repeat(req.body.length),req.body.map(b=>Object.values(b)))
     // })
     
   }
@@ -119,23 +89,6 @@ export const getAllContracts = (req, res, next) => {
       }
     );
    };
-
-//    export const updateTodo = (req, res, next) => {
-//     if (!req.params.id) {
-//       return next(new AppError("No block id found", 404));
-//     }
-//     conn.query(
-//       "UPDATE block SET status='completed' WHERE id=?",
-//       [req.params.id],
-//       function (err, data, fields) {
-//         if (err) return next(new AppError(err, 500));
-//         res.status(201).json({
-//           status: "success",
-//           message: "todo updated!",
-//         });
-//       }
-//     );
-//    };
    
 
    export const deleteContract = (req, res, next) => {
@@ -155,15 +108,26 @@ export const getAllContracts = (req, res, next) => {
     );
    }
 /*
-CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
-symbol varchar(50) NOT NULL,
-decimals varchar(50) NOT NULL,
-contractAddress varchar(50) NOT NULL,
-amount varchar(50) NOT NULL,
-age varchar(50) NOT NULL,
-Volume5m varchar(50) NOT NULL,
-volume15m varchar(50) NOT NULL,
-volume1h varchar(50) NOT NULL,
-volume1d varchar(50) NOT NULL,
-PRIMARY KEY (id)
-);*/
+   
+  //for contract, what do i want to do?
+
+
+
+  //
+ /*
+  checkIfContractsExist
+
+  find ones that do and ones that dont 
+
+  post ones that dont and update ones that do
+
+  perhaps for naive implementation, we simply getAllContracts and then...
+
+
+  what if you feed it contracts, have it select * from contracts, and then return the ones that don't match?
+
+
+  feed it an array of contracts, select * from contracts, filter by contracts in that list, then post the ones that didnt exist and put the ones that did?
+
+  ...
+ */

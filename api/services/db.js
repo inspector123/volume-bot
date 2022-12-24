@@ -1,4 +1,6 @@
 import mysql from 'mysql2';
+import * as dotenv from 'dotenv';
+dotenv.config();
 const conn = mysql.createConnection({
  host: "127.0.0.1",
  port: 3306,
