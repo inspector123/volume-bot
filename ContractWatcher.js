@@ -33,40 +33,72 @@ class ContractWatcher {
 
     setUpVolumeBot() {
         this.volumeBot.command('printout', (ctx)=> {
-            if (this.gettingPrintout)
-            { 
-                this.volumeBot.telegram.sendMessage(this.chatId, 'feck off mate'); 
-                return;
-            } 
-            else {
-                this.gettingPrintout = true;
                 const messageText = '/printout ';
                 this.volumeBot.telegram.sendMessage(this.chatId, 'test');
                 
                 const replacedText = ctx.message.text.replace(messageText, '')
                 console.log(replacedText)
-
-                //const response = getBasicPrintout()
-                this.gettingPrintout = false;
-            }
             
         })
-        this.volumeBot.command('sorted', async (ctx)=> {
-            if (this.busy) this.volumeBot.telegram.sendMessage(this.chatId, 'busy');
-            else {
-                this.busy = true;
-                const messageText = '/sorted ';
-                this.volumeBot.telegram.sendMessage(this.chatId, 'processing');
 
-                const replacedText = ctx.message.text.replace(messageText, '')
 
-                const response = await this.getBasicSortedVolumePrintout(replacedText);
-                if (response == 'error') this.volumeBot.telegram.sendMessage(this.chatId, 'bad input, try again.');
-                console.log(response.data.slice(0,100));
-                this.busy = false;
+
+        this.volumeBot.command('reset', ()=>{
+            this.gettingPrintout = false;
+            this.busy = false;
+        })
+
+        this.volumeBot.command('sortedmanual', async (ctx) => {
+            try {
+                this.volumeBot.telegram.sendMessage(this.chatId, 'this command is disabled')
+                // const messageText = '/sortedmanual ';
+                // this.volumeBot.telegram.sendMessage(this.chatId, 'test');
                 
+                // const replacedText = ctx.message.text.replace("/sortedmanual ", ' ')
+                // if (parseInt(replacedText) < 100000) {
+                //     const response = await this.getFromBlock(replacedText)
+                //     this.sortOutput(response)
+                // } else {
+                //     this.volumeBot.telegram.sendMessage(this.chatId, `error processing, non number or bad number given`)
+                // }
+            } catch(e) {
+                this.volumeBot.telegram.sendMessage(this.chatId, `error try again`)
             }
         })
+
+        this.volumeBot.command('sorted', async (ctx) => {
+            try {
+                const messageText = '/sorted ';
+                this.volumeBot.telegram.sendMessage(this.chatId, 'processing');
+                
+                const replacedText = ctx.message.text.replace("/sorted ", '')
+                if (parseInt(replacedText) < 100000) {
+                    const response = await this.sortedSpecifyBlockNumber(this.currentBlock - replacedText)
+                    if (response.length > 50) {
+                        for (let i = 0; i<response.length; i+50) {
+                            const end = i+50 > response.length ? response.length : i+50;
+                            const start = end-49
+                            this.volumeBot.telegram.sendMessage(this.chatId, JSON.stringify(response.data.data.slice(start,end)))
+                        }
+                    } else {
+                        this.volumeBot.telegram.sendMessage(this.chatId, `${JSON.stringify(response)}`)
+                    }
+                    
+                    // if (response.length < 50) {
+                    //    
+                    // } else {
+                    //     this.volumeBot.telegram.sendMessage(this.chatId, `${JSON.stringify(response.slice(0,50))}`)
+                    // }
+
+                } else {
+                    this.volumeBot.telegram.sendMessage(this.chatId, `error processing, non number or bad number given`)
+                }
+                return;
+            } catch(e) {
+                this.volumeBot.telegram.sendMessage(this.chatId, `error try again`)
+            }
+        })
+        
         this.volumeBot.launch();
     }
 
@@ -80,7 +112,22 @@ class ContractWatcher {
         if (blocks == 0) return 'error';
 
         const response = await api.get(`api/blocks/from/${blocks}?sortBySymbol=1`);
-        return response.data;
+        const data = response.data.data;
+
+        const _string = data.reduce((i, j)=> {
+            return `symbol: ${i.symbol}, sum(usdVolume): ${i.volume}, contract: ${i.contract}
+            ----------------------------------------------------------------------------------
+            symbol: ${j.symbol}, sum(usdVolume): ${j.volume}, contract: ${j.contract}
+            ----------------------------------------------------------------------------------`
+        })
+        console.log(_string, 'asdfkjl')
+        return data;
+    }
+
+    async sortedSpecifyBlockNumber(blockNumber) {
+        const response = await api.get(`/api/blocks/from/${blockNumber}?sortBySymbol=1`)
+        console.log(response.data.data)
+        return response.data.data;
     }
 
     async createContracts() {
@@ -90,12 +137,13 @@ class ContractWatcher {
     async getFromBlock(block){
         const response = await api.get(`/api/blocks/from/${block}`);
         console.log(response.data.data)
-        return response.data.data;
+        return response.data;
     }
 
 
     getBlocksfromTime(time){
         let blocks;
+        console.log(time)
         switch (time) {
             case '5m':
                 blocks = 25
@@ -108,8 +156,8 @@ class ContractWatcher {
                 break;
             case '1D':
                 blocks = 7200
-                break; 
-            default: 
+                break;
+            default:
                 blocks = 0
                 break;
         }

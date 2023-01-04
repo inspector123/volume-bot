@@ -21,7 +21,7 @@ export const getAllBlocks = (req, res, next) => {
     }
     if (!req.query.sortBySymbol) {
       conn.query(
-        "SELECT symbol, contract, txHash, usdVolume, usdPrice, isBuy, router, v3Orv2, marketCap FROM BlockEvents WHERE blockNumber between (select max(blockNumber)-?) and (select max(blockNumber));",
+        "SELECT symbol, contract, txHash, usdVolume, usdPrice, isBuy, marketCap FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber));",
         [req.params.blockNumber],
         function (err, data, fields) {
           if (err) return next(new AppError(err, 500));
@@ -35,7 +35,7 @@ export const getAllBlocks = (req, res, next) => {
     }
     else {
       conn.query(
-        "SELECT symbol, sum(usdVolume), max(contract) FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY symbol ORDER BY sum(usdVolume) desc;",
+        "SELECT symbol, sum(usdVolume) AS volume , max(contract) as contract FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY symbol ORDER BY sum(usdVolume) desc;",
         [req.params.blockNumber],
         function (err, data, fields) {
           if (err) return next(new AppError(err, 500));
