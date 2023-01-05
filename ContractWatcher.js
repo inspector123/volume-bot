@@ -8,15 +8,17 @@ class ContractWatcher {
     volumeBotKey;
     chatId;
     httpProvider;
+    archiveProvider;
     gettingPrintout = true;
     blocksPerMin = 5;
     busy;
 
-    constructor(chatId, volumeBotKey, httpUrl) {
+    constructor(chatId, volumeBotKey, fullNodeUrl, archiveNodeUrl) {
 
         this.chatId = chatId;
         this.volumeBot = new Telegraf(volumeBotKey);
         this.httpProvider = new ethers.providers.JsonRpcProvider(httpUrl);
+        this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
         this.setUpVolumeBot();
         this.node();
     }
@@ -28,6 +30,10 @@ class ContractWatcher {
             //getWallet();
 
         })
+    }
+
+    backfill(blocks) {
+        
     }
 
 
