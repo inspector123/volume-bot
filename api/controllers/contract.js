@@ -14,40 +14,42 @@ export const getAllBlocks = (req, res, next) => {
 
 
 
-   export const getBlock = (req, res, next) => {
-    console.log(req.params)
-    if (!req.params.blockNumber) {
-       res.status(404).json({status: "failure", data, length: data?.length});
-    }
-    if (!req.query.sortBySymbol) {
-      conn.query(
-        "SELECT symbol, contract, txHash, usdVolume, usdPrice, isBuy, marketCap FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber));",
-        [req.params.blockNumber],
-        function (err, data, fields) {
-          if (err) return next(new AppError(err, 500));
-          res.status(200).json({
-            status: "success",
-            length: data?.length,
-            data: data,
-          });
-        }
-      );
-    }
-    else {
-      conn.query(
-        "SELECT symbol, sum(usdVolume) AS volume , max(contract) as contract FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY symbol ORDER BY sum(usdVolume) desc;",
-        [req.params.blockNumber],
-        function (err, data, fields) {
-          if (err) return next(new AppError(err, 500));
-          res.status(200).json({
-            status: "success",
-            length: data?.length,
-            data: data,
-          });
-        }
-      );
-    }
-   };
+export const getBlock = (req, res, next) => {
+  console.log(req.params)
+  if (!req.params.blockNumber) {
+      res.status(404).json({status: "failure", data, length: data?.length});
+  }
+  if (!req.query.sortBySymbol) {
+    conn.query(
+      "SELECT symbol, contract, txHash, usdVolume, usdPrice, isBuy, marketCap FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber));",
+      [req.params.blockNumber],
+      function (err, data, fields) {
+        if (err) return next(new AppError(err, 500));
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+      }
+    );
+  }
+  else {
+    conn.query(
+      "SELECT symbol, sum(usdVolume) AS volume , max(contract) as contract FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY symbol ORDER BY sum(usdVolume) desc;",
+      [req.params.blockNumber],
+      function (err, data, fields) {
+        if (err) return next(new AppError(err, 500));
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+      }
+    );
+  }
+};
+
+
 export const getAllContracts = (req, res, next) => {
     conn.query("SELECT * FROM Contracts", function (err, data, fields) {
       if(err) return next(new AppError(err))
@@ -59,21 +61,21 @@ export const getAllContracts = (req, res, next) => {
     });
    };
 
-  //  export const createContract = (req, res, next) => {
-  //   if (!req.body) return next(new AppError("No form data found", 404));
-  //   const values = [req.body.name, "pending"];
-  //   conn.query(
-  //     "INSERT INTO Contracts (symbol, decimals, contract, amount, age,Volume5m,volume15m,volume1h,volume1d ) VALUES(?)",
-  //     [values],
-  //     function (err, data, fields) {
-  //       if (err) return next(new AppError(err, 500));
-  //       res.status(201).json({
-  //         status: "success",
-  //         message: "block created!",
-  //       });
-  //     }
-  //   );
-  //  };
+   export const createContract = (req, res, next) => {
+    if (!req.body) return next(new AppError("No form data found", 404));
+    const values = [req.body.name, "pending"];
+    conn.query(
+      "INSERT INTO Contracts (symbol, decimals, contract, amount, age,volume5m,volume15m,volume1h,volume1d ) VALUES(?)",
+      [values],
+      function (err, data, fields) {
+        if (err) return next(new AppError(err, 500));
+        res.status(201).json({
+          status: "success",
+          message: "block created!",
+        });
+      }
+    );
+   };
 
   export const createContracts = async(req, res, next) => {
     return next(new AppError("No form data found", 404));
@@ -123,6 +125,25 @@ export const getAllContracts = (req, res, next) => {
         });
       }
     );
+   }
+
+   export const getMatchingContracts = ( req, res, next) => {
+    if (!req.body) return next(new AppError("No body with contracts", 404));
+    const values = req.body;
+    console.log(values)
+    conn.query(
+      "SELECT * FROM Contracts where contract in (?)",
+      [values],
+      function (err, data, fields) {
+        if (err) return next(new AppError(err, 500));
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+      }
+
+    )
    }
 /*
    

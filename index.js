@@ -14,6 +14,7 @@ const {
     CHAT_ID_CHANNEL_BETA, 
     CHAT_ID_DISCUSSION, 
     VOLUME_BOT_KEY,
+    CHAT_ID_BETA_TEST,
     PORT
  } = process.env;
 const app = express();
@@ -39,4 +40,4 @@ const wssPort = "9536"
 const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
-const watcher = new ContractWatcher(CHAT_ID_CHANNEL_BETA, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
+const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
