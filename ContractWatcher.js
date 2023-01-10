@@ -6,7 +6,7 @@ import SwapParser from './api/utils/swapParser.js'
 
 const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"));
 const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,event PairCreatedaddress)"));
-
+const addZeros = "0x000000000000000000000000"
 const v3factory = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
 //const poolCreatedTopic = "0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"
 const v2factory = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
@@ -50,26 +50,17 @@ class ContractWatcher {
 
         this.test();
     }
-    async test() {
-        const contract = "0x000000000000000000000000c5fB36dd2fb59d3B98dEfF88425a3F425Ee469eD".toLowerCase();
-        const normal = "c5fB36dd2fb59d3B98dEfF88425a3F425Ee469eD"
-        const filter = {
-            address: v3factory, 
-            topics: [
-                poolCreatedTopic
-                // [null, contract], 
-                // [null, contract]
-            ]
-        }
-        //what if it has v2 and v3 events?
+    async getAge(contract) {
+
+        const contract = `${addZeros}${contract.toLowerCase()}`;
         try {
             let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [contract]], fromBlock: 13000000})
             let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], null, [contract]], fromBlock: 13000000})
             let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], [contract]], fromBlock: 13000000})
             let univ3Pos2 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], null, [contract]], fromBlock: 13000000})
-            const earliestLiquidityEventOnV3OrV2 = [ ...univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
-            //const response = await this.archiveProvider.getBlock(15000000)
-            const age = this.latestBlockNumber - earliestLiquidityEventOnV3OrV2;
+            const earliestLiquidityEvent = [ univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+
+            const age = this.latestBlockNumber - earliestLiquidityEvent;
             console.log(age)
         } catch(e) {
             console.log('error getting age', e)
