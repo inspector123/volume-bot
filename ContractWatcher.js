@@ -61,11 +61,19 @@ class ContractWatcher {
                 // [null, contract]
             ]
         }
-        const response = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [contract]], fromBlock: 13000000})
-        const response2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], null, [contract]], fromBlock: 13000000})
-
-        //const response = await this.archiveProvider.getBlock(15000000)
-        console.log(response2)
+        //what if it has v2 and v3 events?
+        try {
+            let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [contract]], fromBlock: 13000000})
+            let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], null, [contract]], fromBlock: 13000000})
+            let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], [contract]], fromBlock: 13000000})
+            let univ3Pos2 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], null, [contract]], fromBlock: 13000000})
+            const earliestLiquidityEventOnV3OrV2 = [ ...univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+            //const response = await this.archiveProvider.getBlock(15000000)
+            const age = this.latestBlockNumber - earliestLiquidityEventOnV3OrV2;
+            console.log(age)
+        } catch(e) {
+            console.log('error getting age', e)
+        }
     }
 
     // async run5mJob() {
