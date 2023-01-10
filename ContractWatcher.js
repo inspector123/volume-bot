@@ -54,16 +54,16 @@ class ContractWatcher {
 
         const contract = `${addZeros}${contract.toLowerCase()}`;
         try {
-            let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [contract]], fromBlock: 13000000})
-            let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], null, [contract]], fromBlock: 13000000})
-            let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], [contract]], fromBlock: 13000000})
+            let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [contract]], fromBlock: 10000000})
+            let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], null, [contract]], fromBlock: 10000000})
+            let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], [contract]], fromBlock: 10000000})
             let univ3Pos2 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], null, [contract]], fromBlock: 13000000})
             const earliestLiquidityEvent = [ univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
-
             const age = this.latestBlockNumber - earliestLiquidityEvent;
-            console.log(age)
+            return age;
         } catch(e) {
             console.log('error getting age', e)
+            return 0;
         }
     }
 
@@ -104,21 +104,8 @@ class ContractWatcher {
 
             const nonExistentContracts = sortedVolume.filter(symbol=>!contractsMatching.includes(symbol.contract));
 
-            const contractObjects = await Promise.all(contractsToPost.map(sym=>{
-                //const age = //get logs where the pair , and get the first log. except gettign every log is going to take forever?
-                /*
-                how will we handle getting the first swap?
-
-                if it's v3 get v3 liquidity topic.
-                
-                if it's v2 get v2 liquiity topic.
-                */
-                const isV3 = true; // testing only
-                if (isV3) {
-                    const poolCreatedLog = this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], [sym.contract, null], [sym.contract, null]], })
-                } else {
-                    const pairCreatedLog = this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [null, sym.contract], [null, sym.contract]]})
-                }
+            const contractObjects = await Promise.all(contractsToPost.map(async sym=>{
+                const age = await getAge(sym.contract)
                 return {
                     symbol: sym.symbol,
                     decimals: 0,
@@ -130,7 +117,7 @@ class ContractWatcher {
             
             
 
-
+//Third table with pairs.
 /*CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
                         symbol varchar(50) NOT NULL,
                         decimals varchar(50) NOT NULL,
