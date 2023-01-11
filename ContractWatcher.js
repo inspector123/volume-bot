@@ -133,9 +133,10 @@ class ContractWatcher {
             
             // 4. for each contract that does exist, make a PUT with the 5m volume.
             //take sorted volume and sort by "existingContracts"
+            let putObjects = [];
             if (existingContractsData.length) {
 
-                const putObjects = existingContractsData.map(c=>{
+                putObjects = existingContractsData.map(c=>{
                     const { volume: volume5m } = sortedVolume.filter(b=>b.contract == c.contract)[0];
                     return {
                         volume5m,
@@ -146,7 +147,13 @@ class ContractWatcher {
                 await this.putContracts(putObjects);
             }
             
-
+            let allObjects = [...putObjects, postObjects].flat();
+            for (let i in allObjects) {
+                let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
+                if (allObjects[i].volume5m > 20000 && timeSinceAdd < 30) {
+                    this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
+                }
+            }
 
             // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
 
@@ -158,6 +165,8 @@ class ContractWatcher {
         }
 
     }
+
+    //next is run15mjob
 
     async postContracts(contractsArray) {
             //console.log(contractsArray)
