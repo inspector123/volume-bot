@@ -160,17 +160,18 @@ class ContractWatcher {
     }
 
     async postContracts(contractsArray) {
-        try {
             //console.log(contractsArray)
             for (let i in contractsArray) {
-                const response = await api.post('/api/contracts', contractsArray[i])
+                try {
+                    const response = await api.post('/api/contracts', contractsArray[i])
+                }
+                catch(e) {
+                    console.log(e.response?.err?.data)
+                    return;
+                }
             }
             if (contractsArray.length) console.log(`${contractsArray.length} new contracts added to table`)
-        }
-        catch(e) {
-            console.log(e.response?.err?.data)
-            return;
-        }
+        
     }
     async putContracts(array) {
         for (let i in array) {
