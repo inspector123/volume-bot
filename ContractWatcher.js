@@ -104,7 +104,7 @@ const res = await fetch(endpoint, {
             return 1000000;
         }
     }
-    async getAge(contract, _fromBlock) {
+    async getLiqAddBlock(contract, _fromBlock) {
         let fromBlock = _fromBlock;
         if (!_fromBlock) fromBlock = 1000000;
         const contractTopic = contract.toLowerCase().replace("0x", addZeros)
@@ -123,7 +123,7 @@ const res = await fetch(endpoint, {
                 return v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
             }
         } catch(e) {
-            console.log('error getting age', e, contract)
+            console.log('error getting add block', e, contract)
             return 1000000;
         }
     }
@@ -213,28 +213,24 @@ const res = await fetch(endpoint, {
             //for contracts that don't exist, get their age and add them
             const newContracts = sortedVolume.filter(symbol=>!data.includes(symbol.contract));
             console.log('newContracts length', newContracts.length)
-
-            const ages = await this.getAges(newContracts.map(c=>c.contract));
-            const time1 = Date.now()
             const contractObjects = await Promise.all(newContracts.map(async sym=>{
-                const age = await this.getAge(sym.contract)
-                console.log(age)
+                const liqAddBlock = await this.getLiqAddBlock(sym.contract)
                 return {
                     symbol: sym.symbol,
                     contract: sym.contract,
-                    age: 0,
+                    liqAddBlock,
                     volume5m: sym.volume,
                     volume15m: 0,
                     volume1h: 0,
                     volume1d: 0
                 }
             }));
-            const time2 = Date.now()-time1;
-            console.log('done', '1by1 time:', time2/1000)
-            //await this.postContracts(contractObjects);
+            console.log('got liq add blocks')
+            await this.postContracts(contractObjects);
 
             
             // 4. for each contract that does exist, make a PUT with the 5m volume.
+            await this.putContracts(data);
             // for (let i in matchingContracts) {
             //     await api.put(`/api/contracts?contract=${matchingContracts[i].contract}&${matchingContracts[i].volume5m}`)
             // }
@@ -253,13 +249,20 @@ const res = await fetch(endpoint, {
 
     async postContracts(contractsArray) {
         try {
+            //console.log(contractsArray)
             for (let i in contractsArray) {
                 const response = await api.post('/api/contracts', contractsArray[i])
+                //console.log(response)
             }
         }
         catch(e) {
             console.log(e.response?.err?.data)
             return;
+        }
+    }
+    async putContracts(array) {
+        for (let i in array) {
+            await api.put(`/api/contracts?contract=${array[i].contract}&${array[i].volume5m}`)
         }
     }
 

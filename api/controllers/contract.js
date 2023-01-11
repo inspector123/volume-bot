@@ -63,10 +63,10 @@ export const getAllContracts = (req, res, next) => {
 
    export const createContract = (req, res, next) => {
     if (!req.body) return next(new AppError("No form data found", 404));
-    const values = [req.body.name, "pending"];
+    console.log(req.body)
     conn.query(
-      "INSERT INTO Contracts (symbol, decimals, contract, amount, age,volume5m,volume15m,volume1h,volume1d ) VALUES(?)",
-      [values],
+      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume5m,volume15m,volume1h,volume1d) VALUES(?)",
+      [Object.values(req.body)],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
         res.status(201).json({
