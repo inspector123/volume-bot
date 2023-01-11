@@ -35,7 +35,7 @@ export const getBlock = (req, res, next) => {
   }
   else {
     conn.query(
-      "SELECT contract, sum(usdVolume). max(contract) AS volume FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
