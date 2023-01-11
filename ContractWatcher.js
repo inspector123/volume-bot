@@ -46,9 +46,10 @@ class ContractWatcher {
         this.httpProvider.on('block', (latestBlockNumber)=>{
             this.latestBlockNumber = latestBlockNumber;
             this.blocks++;
-            // if (!(this.blocks % 25)) {
-            //     this.run5MJob(blockNumber);
-            // }
+            if (!(this.blocks % 25)) {
+                console.log('running 5m job')
+                this.run5mJob();
+            }
 
         })
         
@@ -68,9 +69,14 @@ class ContractWatcher {
             if (!v3v2Events.length) {
                 let sushiPos1 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock});
                 let sushiPos2 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic],null, [contractTopic]], fromBlock});
-                return [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+                const { blockNumber } =  [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
+                const { timestamp } = await this.archiveProvider.getBlock(blockNumber)
+                return timestamp
+
             } else {
-                return v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+                const { blockNumber } =  v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
+                const { timestamp } = await this.archiveProvider.getBlock(blockNumber)
+                return timestamp
             }
         } catch(e) {
             console.log('error getting add block', e, contract)
@@ -99,15 +105,15 @@ class ContractWatcher {
             const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-25);
             
             //get contracts that currently exist in Contracts table from last sql query.
-            const existingContracts = await api.post('/api/contracts/matching', sortedVolume.map(b=>b.contract))
-            let data = []
-            if (existingContracts.data.data.length) data = existingContracts.data.data;
-            console.log('matching', existingContracts.data.data)
+            const existingContracts = await api.post('/api/contracts?matching=true', sortedVolume.map(b=>b.contract))
+            let existingContractsData = []
+            if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
+            console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
-            const newContracts = sortedVolume.filter(symbol=>!data.includes(symbol.contract));
+            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
             console.log('newContracts length', newContracts.length)
-            const contractObjects = await Promise.all(newContracts.map(async sym=>{
+            const postObjects = await Promise.all(newContracts.map(async sym=>{
                 const liqAddBlock = await this.getLiqAddBlock(sym.contract)
                 return {
                     symbol: sym.symbol,
@@ -119,15 +125,27 @@ class ContractWatcher {
                     volume1d: 0
                 }
             }));
+
+
             console.log('got liq add blocks')
-            await this.postContracts(contractObjects);
+            await this.postContracts(postObjects);
 
             
             // 4. for each contract that does exist, make a PUT with the 5m volume.
-            await this.putContracts(data);
-            // for (let i in matchingContracts) {
-            //     await api.put(`/api/contracts?contract=${matchingContracts[i].contract}&${matchingContracts[i].volume5m}`)
-            // }
+            //take sorted volume and sort by "existingContracts"
+            if (existingContractsData.length) {
+
+                const putObjects = existingContractsData.map(c=>{
+                    const { volume: volume5m } = sortedVolume.filter(b=>b.contract == c.contract)[0];
+                    return {
+                        volume5m,
+                        ...c
+                    }
+
+                })
+                await this.putContracts(putObjects);
+            }
+            
 
 
             // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
@@ -146,8 +164,8 @@ class ContractWatcher {
             //console.log(contractsArray)
             for (let i in contractsArray) {
                 const response = await api.post('/api/contracts', contractsArray[i])
-                //console.log(response)
             }
+            if (contractsArray.length) console.log(`${contractsArray.length} new contracts added to table`)
         }
         catch(e) {
             console.log(e.response?.err?.data)
@@ -157,33 +175,34 @@ class ContractWatcher {
     async putContracts(array) {
         for (let i in array) {
             try {
-                await api.put(`/api/contracts?contract=${array[i].contract}&volume5m=${array[i].volume5m}`)
+                const response = await api.put(`/api/contracts/${array[i].contract}?volume5m=${array[i].volume5m}`)
             } catch(e) {
-                console.log('error putting', e)
+                console.log('error putting', e.response?.status, e.response?.data)
             }
         }
+        if (array.length) console.log(`${array.length} contracts 5m Volume updated.`)
     }
 
     setUpVolumeBot() {
 
         this.volumeBot.command('run5m', async ()=>{
             this.volumeBot.telegram.sendMessage(this.chatId, 'running 5m Job')
-            //this.run5mJob();
+            this.run5mJob();
         })
 
         this.volumeBot.command('fill', async (ctx)=>{
-            this.volumeBot.telegram.sendMessage(this.chatId, 'filling')
-            const replacedText = ctx.message.text.replace('/fill ', '')
-            //now have 1349339 32893903
-            const re = replacedText.match(/([0-9]*)\w([0-9]*)/g)
-            const blockNumberStart = parseInt(re[0])
-            const blockNumberEnd = parseInt(re[1])
-            if (blockNumberStart > blockNumberEnd ) {
-                this.volumeBot.telegram.sendMessage(this.chatId, 'number1 must be > number2');
-                return;
-            } else {
-                this.fillBlockRange(blockNumberStart,blockNumberEnd)
-            }
+            this.volumeBot.telegram.sendMessage(this.chatId, 'disabled')
+            // const replacedText = ctx.message.text.replace('/fill ', '')
+            // //now have 1349339 32893903
+            // const re = replacedText.match(/([0-9]*)\w([0-9]*)/g)
+            // const blockNumberStart = parseInt(re[0])
+            // const blockNumberEnd = parseInt(re[1])
+            // if (blockNumberStart > blockNumberEnd ) {
+            //     this.volumeBot.telegram.sendMessage(this.chatId, 'number1 must be > number2');
+            //     return;
+            // } else {
+            //     this.fillBlockRange(blockNumberStart,blockNumberEnd)
+            // }
         
             
             //await this.run5mJob();
