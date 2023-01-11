@@ -8,12 +8,11 @@ const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,ad
 const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,event PairCreatedaddress)"));
 const addZeros = "0x000000000000000000000000"
 const v3factory = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
-//const poolCreatedTopic = "0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"
 const v2factory = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
-//const pairCreatedTopic = "0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9"
-const poolCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PoolCreated(address,address,uint24,int24,address)"))
-const pairCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PairCreated(address,address,address,uint256)"))
-console.log(pairCreatedTopic)
+const sushiFactory1 = "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
+const v3_poolCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PoolCreated(address,address,uint24,int24,address)"))
+const v2_pairCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PairCreated(address,address,address,uint256)"))
+const sushiv1_pairCreatedTopic = v2_pairCreatedTopic
 class ContractWatcher {
 
     currentBlock;
@@ -38,7 +37,7 @@ class ContractWatcher {
         this.node();
     }
 
-    node() {
+    async node() {
         this.httpProvider.on('block', (latestBlockNumber)=>{
             this.latestBlockNumber = latestBlockNumber;
             this.blocks++;
@@ -47,93 +46,71 @@ class ContractWatcher {
             // }
 
         })
-
-        this.test();
+        const age = await this.getAge("0xa5f2211B9b8170F694421f2046281775E8468044", 13000000)
+        console.log(age)
+        
     }
-    async getAge(contract) {
-
-        const contract = `${addZeros}${contract.toLowerCase()}`;
+    async getAge(contract, _fromBlock) {
+        let fromBlock = _fromBlock;
+        if (!_fromBlock) fromBlock = 1000000;
+        const contractTopic = contract.toLowerCase().replace("0x", addZeros)
         try {
-            let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], [contract]], fromBlock: 10000000})
-            let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[pairCreatedTopic], null, [contract]], fromBlock: 10000000})
-            let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], [contract]], fromBlock: 10000000})
-            let univ3Pos2 = await this.archiveProvider.getLogs({address: v3factory, topics: [[poolCreatedTopic], null, [contract]], fromBlock: 13000000})
-            const earliestLiquidityEvent = [ univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
-            const age = this.latestBlockNumber - earliestLiquidityEvent;
-            return age;
+            let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock})
+            let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[v2_pairCreatedTopic], null, [contractTopic]], fromBlock})
+            let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[v3_poolCreatedTopic], [contractTopic]], fromBlock})
+            let univ3Pos2 = await this.archiveProvider.getLogs({address: v3factory, topics: [[v3_poolCreatedTopic], null, [contractTopic]], fromBlock})
+            const v3v2Events = [ univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat()
+            if (!v3v2Events.length) {
+                let sushiPos1 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock});
+                let sushiPos2 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic],null, [contractTopic]], fromBlock});
+                return [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+            } else {
+                return v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+            }
         } catch(e) {
-            console.log('error getting age', e)
-            return 0;
+            console.log('error getting age', e, contract)
+            return 1000000;
         }
     }
-
-    // async run5mJob() {
-    //     const filter = {
-    //         topics: [[v3topic, v2topic]],
-    //         fromBlock: this.latestBlockNumber-60,
-    //         toBlock: this.latestBlockNumber
-    //     }
-    //     const logs = await this.httpProvider.getLogs(filter);
-    //     let swaps = []
-    //     for (let i in logs) {
-    //         const swap = await this.swapParser.grabSwap(logs[i]);
-    //         swaps = [...swaps, swap]
-
-    //     }
-
-    // }
 
     async run5mJob() {
         
         try {
-            //         1. read from blockevents table last 5m of entries (last 25 blocks.)
-            //  - SQL QUERY: get blockevents last 25 blocks (already done)
-            const sortedVolume = await this.sortedSpecifyBlockNumber(this.currentBlock-25);
+            //read from blockevents table last 5m of entries (last 25 blocks.)
+            const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-25);
             
-            const contracts = sortedVolume.map(b=>b.contract);
+            //get contracts that currently exist in Contracts table from last sql query.
+            const existingContracts = await api.post('/api/contracts/matching', sortedVolume.map(b=>b.contract))
+            let data = []
+            if (existingContracts.data.data.length) data = existingContracts.data.data;
+            console.log('matching', existingContracts.data.data)
 
-            // 2. get all contracts that match those contracts from the last 25 blocks
-            //  - SQL QUERY: get contracts matching contracts from last sql query.
-            const contractsMatching = await api.post('/api/contracts/matching', sortedVolume.map(b=>b.contract))
-            console.log(contractsMatching.data)
+            //for contracts that don't exist, get their age and add them
+            const newContracts = sortedVolume.filter(symbol=>!data.includes(symbol.contract));
+            console.log('newContracts length', newContracts.length)
 
-
-            // 3. for each contract that does not exist, make a POST with the 5m volume and contract age (using archive node).
-            //  - sql query - see above
-            // 3a. get contracts that don't exist. then compile statistics and get object.
-
-            const nonExistentContracts = sortedVolume.filter(symbol=>!contractsMatching.includes(symbol.contract));
-
-            const contractObjects = await Promise.all(contractsToPost.map(async sym=>{
-                const age = await getAge(sym.contract)
+            const contractObjects = await Promise.all(newContracts.map(async sym=>{
+                const age = await this.getAge(sym.contract)
+                console.log(age)
                 return {
                     symbol: sym.symbol,
-                    decimals: 0,
                     contract: sym.contract,
-                    age
-
+                    age: 0,
+                    volume5m: sym.volume,
+                    volume15m: 0,
+                    volume1h: 0,
+                    volume1d: 0
                 }
             }));
-            
-            
-
-//Third table with pairs.
-/*CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
-                        symbol varchar(50) NOT NULL,
-                        decimals varchar(50) NOT NULL,
-                        contract varchar(50) NOT NULL,
-                        age varchar(50) NOT NULL,
-                        volume5m varchar(50) NOT NULL,
-                        volume15m varchar(50) NOT NULL,
-                        volume1h varchar(50) NOT NULL,
-                        volume1d varchar(50) NOT NULL,
-                        PRIMARY KEY (id)
-                        
-                        );*/
+            console.log('done')
+            //await this.postContracts(contractObjects);
 
             
             // 4. for each contract that does exist, make a PUT with the 5m volume.
-            //  - sql query - see above
+            // for (let i in matchingContracts) {
+            //     await api.put(`/api/contracts?contract=${matchingContracts[i].contract}&${matchingContracts[i].volume5m}`)
+            // }
+
 
             // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
 
@@ -144,6 +121,18 @@ class ContractWatcher {
             console.log(e)
         }
 
+    }
+
+    async postContracts(contractsArray) {
+        try {
+            for (let i in contractsArray) {
+                const response = await api.post('/api/contracts', contractsArray[i])
+            }
+        }
+        catch(e) {
+            console.log(e.response?.err?.data)
+            return;
+        }
     }
 
     setUpVolumeBot() {
@@ -249,7 +238,6 @@ class ContractWatcher {
 
     async sortedSpecifyBlockNumber(blockNumber) {
         const response = await api.get(`/api/blocks/from/${blockNumber}?sortBySymbol=1`)
-        console.log(response.data.data.length)
         return response.data.data;
     }
 
@@ -257,11 +245,10 @@ class ContractWatcher {
         return;
     }
 
-    async getFromBlock(block){
-        const response = await api.get(`/api/blocks/from/${block}`);
-        console.log(response.data.data)
-        return response.data;
-    }
+    // async getFromBlock(block){
+    //     const response = await api.get(`/api/blocks/from/${block}`);
+    //     return response.data;
+    // }
 
 
     getBlocksfromTime(time){

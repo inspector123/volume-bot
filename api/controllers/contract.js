@@ -35,7 +35,7 @@ export const getBlock = (req, res, next) => {
   }
   else {
     conn.query(
-      "SELECT symbol, sum(usdVolume) AS volume , max(contract) as contract FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY symbol ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume). max(contract) AS volume FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -96,8 +96,8 @@ export const getAllContracts = (req, res, next) => {
       return next(new AppError("No block id found", 404));
     }
     conn.query(
-      "UPDATE Contracts SET Volume5m = ? , Volume15m = ? , Volume1H = ? , WHERE contract=?",
-      [req.body.Volume5m, req.body.Volume15m, req.body.Volume1H, req.body.contract
+      "UPDATE Contracts SET Volume5m = ? WHERE contract=?",
+      [req.query.Volume5m, req.query.contract
     ],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -130,7 +130,6 @@ export const getAllContracts = (req, res, next) => {
    export const getMatchingContracts = ( req, res, next) => {
     if (!req.body) return next(new AppError("No body with contracts", 404));
     const values = req.body;
-    console.log(values)
     conn.query(
       "SELECT * FROM Contracts where contract in (?)",
       [values],
