@@ -3,6 +3,7 @@ import api from "./api/utils/axios.js"
 import { Telegraf } from 'telegraf';
 import { ethers, utils } from "ethers"
 import SwapParser from './api/utils/swapParser.js'
+import fetch from 'node-fetch';
 
 const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"));
 const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,event PairCreatedaddress)"));
@@ -12,6 +13,7 @@ const v2factory = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
 const sushiFactory1 = "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
 const v3_poolCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PoolCreated(address,address,uint24,int24,address)"))
 const v2_pairCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("PairCreated(address,address,address,uint256)"))
+const saitaFactory = "0x35113a300ca0D7621374890ABFEAC30E88f214b1"
 const sushiv1_pairCreatedTopic = v2_pairCreatedTopic
 class ContractWatcher {
 
@@ -20,6 +22,7 @@ class ContractWatcher {
     chatId;
     httpProvider;
     archiveProvider;
+    archiveNodeUrl;
     gettingPrintout = true;
     blocksPerMin = 5;
     latestBlockNumber;
@@ -32,6 +35,8 @@ class ContractWatcher {
         this.volumeBot = new Telegraf(volumeBotKey);
         this.httpProvider = new ethers.providers.JsonRpcProvider(fullNodeUrl);
         this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
+        this.batchProvider = new ethers.providers.JsonRpcBatchProvider(archiveNodeUrl);
+        this.archiveNodeUrl = archiveNodeUrl;
         this.swapParser = new SwapParser(fullNodeUrl,archiveNodeUrl);
         this.setUpVolumeBot();
         this.node();
@@ -46,15 +51,65 @@ class ContractWatcher {
             // }
 
         })
-        const age = await this.getAge("0xa5f2211B9b8170F694421f2046281775E8468044", 13000000)
-        console.log(age)
         
+    }
+
+    async getAge_batch(/*contract, _fromBlock*/) {
+        // let fromBlock = _fromBlock;
+        // if (!_fromBlock) fromBlock = 1000000;
+        // const contractTopic = contract.toLowerCase().replace("0x", addZeros)
+
+        /*
+'eth_getBlockByNumber', [
+                [ethers.utils.hexValue(16300000)],
+                [ethers.utils.hexValue(16299999)],
+                [ethers.utils.hexValue(16299998)]
+            ]
+
+            const reqs = [];
+  for (let i = from; i < to; i++) {
+    reqs.push({
+      method: 'eth_getBlockByNumber',
+      params: [`0x${i.toString(16)}`, false],
+      id: i - from,
+      jsonrpc: '2.0'
+    });
+  }
+
+const res = await fetch(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(reqs),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await res.json();
+
+        */
+        try {
+            //let response = await this.batchProvider.send('eth_getLogs', )
+            
+            // let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock})
+            // let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[v2_pairCreatedTopic], null, [contractTopic]], fromBlock})
+            // let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[v3_poolCreatedTopic], [contractTopic]], fromBlock})
+            // let univ3Pos2 = await this.archiveProvider.getLogs({address: v3factory, topics: [[v3_poolCreatedTopic], null, [contractTopic]], fromBlock})
+            // const v3v2Events = [ univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat()
+            // if (!v3v2Events.length) {
+            //     let sushiPos1 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock});
+            //     let sushiPos2 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic],null, [contractTopic]], fromBlock});
+            //     return [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+            // } else {
+            //     return v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+            // }
+        } catch(e) {
+            console.log('error getting age', e)
+            return 1000000;
+        }
     }
     async getAge(contract, _fromBlock) {
         let fromBlock = _fromBlock;
         if (!_fromBlock) fromBlock = 1000000;
         const contractTopic = contract.toLowerCase().replace("0x", addZeros)
         try {
+
             let univ2Pos1 = await this.archiveProvider.getLogs({address: v2factory, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock})
             let univ2Pos2 = await this.archiveProvider.getLogs({address: v2factory, topics: [[v2_pairCreatedTopic], null, [contractTopic]], fromBlock})
             let univ3Pos1 = await this.archiveProvider.getLogs({address: v3factory, topics: [[v3_poolCreatedTopic], [contractTopic]], fromBlock})
@@ -73,6 +128,76 @@ class ContractWatcher {
         }
     }
 
+    async getAges(contractsArray) {
+        let fromBlock = ethers.utils.hexValue(10000000);
+        let reqs = [];
+        for (let i in contractsArray) {
+
+            const contractTopic = contractsArray[i].toLowerCase().replace("0x", addZeros)
+            reqs = [...reqs,{
+                    method: 'eth_getLogs',
+                    params: [{address: v2factory, topics: [[v2_pairCreatedTopic], [contractTopic]] , fromBlock }],
+                    id: Math.floor(Math.random()*100000)+1,
+                    jsonrpc: 2.0
+                },
+                {
+                    method: 'eth_getLogs',
+                    params: [{address: v2factory, topics: [[v2_pairCreatedTopic], null, [contractTopic]], fromBlock}],
+                    id: Math.floor(Math.random()*100000)+1,
+                    jsonrpc: 2.0
+                },
+                {
+                    method: 'eth_getLogs',
+                    params: [{address: v2factory, topics: [[v3_poolCreatedTopic], [contractTopic]], fromBlock}],
+                    id: Math.floor(Math.random()*100000)+1,
+                    jsonrpc: 2.0
+                },
+                {
+                    method: 'eth_getLogs',
+                    params: [{address: v3factory, topics: [[v3_poolCreatedTopic], null, [contractTopic]], fromBlock}],
+                    id: Math.floor(Math.random()*100000)+1,
+                    jsonrpc: 2.0
+                },
+                {
+                    method: 'eth_getLogs',
+                    params: [{address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock}],
+                    id: Math.floor(Math.random()*100000)+1,
+                    jsonrpc: 2.0
+                },
+                {
+                    method: 'eth_getLogs',
+                    params: [{address: sushiFactory1, topics: [[v2_pairCreatedTopic], null,[contractTopic]], fromBlock}],
+                    id: Math.floor(Math.random()*100000)+1,
+                    jsonrpc: 2.0
+                }
+            ]
+
+        }
+        //console.log(JSON.stringify(reqs))
+        let time1 = Date.now()
+        let response = await fetch(this.archiveNodeUrl, {
+            method: 'POST',
+            body: JSON.stringify(reqs),
+            headers: { 
+                'Content-Type': 'application/json'
+            }
+        });
+        const json = await response.json();
+        const time = Date.now()-time1;
+        console.log('batch time: ', time)
+
+        // {address: v2factory, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock},
+        // {address: v2factory, topics: [[v2_pairCreatedTopic], null, [contractTopic]], fromBlock},
+        // {address: v3factory, topics: [[v3_poolCreatedTopic], [contractTopic]], fromBlock},
+        // {address: v3factory, topics: [[v3_poolCreatedTopic], null, [contractTopic]], fromBlock},
+        // {address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock},
+        // {address: sushiFactory1, topics: [[v2_pairCreatedTopic],null, [contractTopic]], fromBlock}
+        // return [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+        // } else {
+        //     return v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0].blockNumber;
+        // }
+    }
+
     async run5mJob() {
         
         try {
@@ -89,6 +214,8 @@ class ContractWatcher {
             const newContracts = sortedVolume.filter(symbol=>!data.includes(symbol.contract));
             console.log('newContracts length', newContracts.length)
 
+            const ages = await this.getAges(newContracts.map(c=>c.contract));
+            const time1 = Date.now()
             const contractObjects = await Promise.all(newContracts.map(async sym=>{
                 const age = await this.getAge(sym.contract)
                 console.log(age)
@@ -102,7 +229,8 @@ class ContractWatcher {
                     volume1d: 0
                 }
             }));
-            console.log('done')
+            const time2 = Date.now()-time1;
+            console.log('done', '1by1 time:', time2/1000)
             //await this.postContracts(contractObjects);
 
             
@@ -243,6 +371,28 @@ class ContractWatcher {
 
     async createContracts() {
         return;
+    }
+
+    async testBatch() {
+        const object = [16300000,16299999,16299998,16299997,16299996,1629995]
+            const reqs = []
+            for (let i in object) {
+                reqs.push({
+                    method: 'eth_getBlockByNumber',
+                    params: [ethers.utils.hexValue(object[i]), true],
+                    id:parseInt(i)+1,
+                    jsonrpc: 2.0
+                })
+            }
+            console.log(reqs)
+            let response = await fetch(this.archiveNodeUrl, {
+                method: 'POST',
+                body: JSON.stringify(reqs),
+                headers: { 
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log(await response.json());
     }
 
     // async getFromBlock(block){
