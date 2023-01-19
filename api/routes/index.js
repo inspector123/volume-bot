@@ -1,5 +1,6 @@
 import express from 'express'
-import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, getMatchingContracts } from '../controllers/contract.js';
+import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, createPair, getPairByPairAddress } from '../controllers/queries.js';
+import { createPair, getPairByPairAddress } from '../controllers/queries.js';
 const router = express.Router();
 //
 
@@ -21,4 +22,13 @@ router.route("/api/contracts").post(createContractOrGetMatchingContracts); //hav
 router.route("/api/contracts/:contract") //?volume5m=...
     .put(updateContract)
     .delete(deleteContract);
+
+
+//PAIRS
+
+router.route("/api/pairs")
+    .post(createPair);
+
+router.route("/api/pairs/:pairAddress")
+    .get(getPairByPairAddress)
 export default router;

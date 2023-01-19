@@ -7,6 +7,7 @@ import router from './api/routes/index.js'
 import AppError from "./api/utils/AppError.js";
 import errorHandler from "./api/utils/errorHandler.js";
 import bodyParser from 'body-parser'
+import { BlockFiller } from './api/utils/blockFiller.js'
 
 dotenv.config();
 const {
@@ -40,4 +41,7 @@ const wssPort = "9536"
 const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
-const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
+// const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
+
+const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+blockFiller.fillBlocksFromBehind(100);
