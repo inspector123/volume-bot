@@ -1,6 +1,5 @@
 import express from 'express'
 import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, createPair, getPairByPairAddress } from '../controllers/queries.js';
-import { createPair, getPairByPairAddress } from '../controllers/queries.js';
 const router = express.Router();
 //
 
@@ -9,9 +8,8 @@ const router = express.Router();
 router.route("/api/blocks").get(getAllBlocks)
     .post(createBlock);
 
-router.route("/api/blocks/from/:blockNumber")
-    .get(getBlock)
-
+router.route("/api/blocks/:blockNumber")
+.get(getBlock)
 // //contracts table
 // router.route("/api/contracts")
 //     .put(updateContract)

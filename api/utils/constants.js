@@ -11,6 +11,27 @@ const FRAX = "0x853d955aCEf822Db058eb8505911ED77F175b99e"
 const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
 const StablesOrEth = [USDC,USDT,DAI,WETH,BUSD, FRAX, WBTC]
 
+const USDCContractDetails = {
+    totalSupply: "40141184377829550",
+    decimals: 6,
+    symbol: 'USDC',
+}
+const USDTContractDetails = {
+    totalSupply: "40141184377829550",
+    decimals: 6,
+    symbol: 'USDT'
+}
+const DAIContractDetails = {
+    totalSupply: "5113517488541729170531289814",
+    decimals: 18,
+    symbol: 'DAI'
+}
+const WETHContractDetails = {
+    totalSupply: "3807574587060924114280837",
+    decimals: 18,
+    symbol: 'WETH'
+}
+
 //routers
 const UniswapUniversalRouter = "0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B"
 const UniswapV3Router2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
@@ -70,7 +91,7 @@ const Constants = { daiContract, disallowedPools, disallowedSymbols, disallowedT
     pancakeUSDC, pancakeUSDT, v2USDT, v3_DaiUSDCv4, v3USDC, v3Usdt, v3DaiUsdt,
     KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT,
     acceptedRouters, botContracts, UniswapV3Router2, OneInchV4Router,OneInchv5Router,SushiSwapRouter, UniswapV2, StablesOrEth, apiKey,
-    v3topic, v2topic, wstETH
+    v3topic, v2topic, wstETH, WETHContractDetails, USDTContractDetails, USDCContractDetails, DAIContractDetails
 }
 
 export default Constants

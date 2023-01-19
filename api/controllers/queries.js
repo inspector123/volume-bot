@@ -37,38 +37,36 @@ export const createBlock = async (req, res, next) => {
 
 
 export const getBlock = (req, res, next) => {
-  console.log(req.params)
   if (!req.params.blockNumber) {
       res.status(404).json({status: "failure", data, length: data?.length});
   }
-  if (!req.query.sortBySymbol) {
+  if (req.query.min) {  
     conn.query(
-      "SELECT symbol, contract, txHash, usdVolume, usdPrice, isBuy, marketCap FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber));",
-      [req.params.blockNumber],
+      "SELECT min(blockNumber) as minBlockNumber from BlockEvents",
       function (err, data, fields) {
-        if (err) return next(new AppError(err, 500));
+        if(err) return next(new AppError(err))
         res.status(200).json({
           status: "success",
           length: data?.length,
           data: data,
         });
-      }
-    );
-  }
-  else {
-    conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
-      [req.params.blockNumber],
-      function (err, data, fields) {
-        if (err) return next(new AppError(err, 500));
-        res.status(200).json({
-          status: "success",
-          length: data?.length,
-          data: data,
-        });
-      }
-    );
-  }
+    });}
+    if (req.query.sortBySymbol) {
+      conn.query(
+        "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+        [req.params.blockNumber],
+        function (err, data, fields) {
+          if (err) return next(new AppError(err, 500));
+          res.status(200).json({
+            status: "success",
+            length: data?.length,
+            data: data,
+          });
+        }
+      );
+    } if (!req.query) {
+      console.log('missing query')
+    }
 };
 
 //CONTRACTS

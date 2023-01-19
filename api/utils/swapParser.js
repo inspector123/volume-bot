@@ -64,6 +64,14 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
                 console.log('error getting pair')
             }
         }
+
+        async postSwap(swap) {
+            try {
+                const response = api.post(`/api/blocks`, swap);
+            } catch {
+                console.log('error posting swap')
+            }
+        }
     
         async handlev2Log(log) {
             try {
@@ -83,7 +91,6 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
                 const pairAddress = log.address;
                 const parsedLog = _interface.parseLog(log);
                 if (pair.length) {
-                    //console.log(pair);
                     ({ token0, token1, 
                         token0Decimals, token1Decimals, 
                         token0Symbol, token1Symbol, 
@@ -95,7 +102,7 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
     
                     try {
                         ({decimals: token0Decimals, symbol: token0Symbol, totalSupply: token0TotalSupply } = await this.getTokenDetails(token0));
-                        ({decimals: token1Decimals, symbol: token1Symbol, totalSupply: token1TotalSupply} = await this.getTokenDetails(token1));
+                        ({decimals: token1Decimals, symbol: token1Symbol, totalSupply: token1TotalSupply } = await this.getTokenDetails(token1));
                     } catch(e) {
                         // console.log(e, parsedLog, poolToken, desiredToken)
                         console.log('error getting token details', e)
@@ -241,7 +248,7 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
 
                     await this.postPair(pairBody)
                 }
-    
+                await this.postSwap(v2SwapsToAdd)
                 return v2SwapsToAdd
             } catch(e) {
                 console.log(e)
@@ -271,7 +278,6 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
                     console.log(e, parsedLog)
                 }
                 if (pair.length) {
-                    console.log(pair);
                     ({ token0, token1, 
                         token0Decimals, token1Decimals, 
                         token0Symbol, token1Symbol, 
@@ -407,6 +413,7 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
 
                     await this.postPair(pairBody)
                 }
+                await this.postSwap(v3Swap)
                 return v3Swap
             }
             catch(e) {
