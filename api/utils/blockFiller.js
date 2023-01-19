@@ -60,7 +60,7 @@ export class BlockFiller {
         const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
         const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
 
-        let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: minBlockNumber-1000, toBlock: minBlockNumber})
+        let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: minBlockNumber-1000, toBlock: minBlockNumber-1})
         console.log('swaps length: ', swaps.length)
         let swapsToSend = []
 
@@ -100,3 +100,8 @@ export class BlockFiller {
 
 
 }
+
+//notes
+
+//select blockNumber, txHash, usdVolume, wallet, COUNT(*) from BlockEvents where blockNumber,txHash,usdVolume,wallet,pairAddress HAVING COUNT(*)>1
+//need to use this query to get all duplicates that came from the inclusive getLogs query where I ended up writing 2 times into the final block of the iteration

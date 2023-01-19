@@ -41,19 +41,9 @@ const wssPort = "9536"
 const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
-// const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
+const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
 
 const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-await blockFiller.fillBlocksFromBehind(1000);
-
-await blockFiller.fillBlocksFromBehind(1000);
-
-
-await blockFiller.fillBlocksFromBehind(1000);
-
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
+for (let i = 0; i<100; i++) {
+    await blockFiller.fillBlocksFromBehind(1000);
+}
