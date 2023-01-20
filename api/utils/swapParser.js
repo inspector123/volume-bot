@@ -67,7 +67,8 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
 
         async postSwap(swap) {
             try {
-                const response = api.post(`/api/blocks`, swap);
+                const response = await api.post(`/api/blocks`, swap);
+                console.log(response.status)
             } catch {
                 console.log('error posting swap')
             }
@@ -222,14 +223,7 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
                     wallet: tx.from,
                     router: this.routerName(tx.to),
                     etherPrice: this.etherPrice,
-                    marketCap: marketCap == null ? 0 : marketCap,
-                    pairAddress,
-                    token0,
-                    token1,
-                    token0Decimals,
-                    token1Decimals,
-                    token0Symbol,
-                    token1Symbol
+                    marketCap: marketCap == null ? 0 : marketCap
                 }
                 
                 //post to pairs if pairs didnt exist
@@ -388,14 +382,7 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
                     wallet: tx.from,
                     router: this.routerName(tx.to),
                     etherPrice: this.etherPrice,
-                    marketCap: marketCap == null ? 0 : marketCap,
-                    pairAddress,
-                    token0,
-                    token1,
-                    token0Decimals,
-                    token1Decimals,
-                    token0Symbol,
-                    token1Symbol
+                    marketCap: marketCap == null ? 0 : marketCap
                 }
                 //post to pairs if pairs didnt exist
                 if (!pair.length) {
