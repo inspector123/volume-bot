@@ -68,7 +68,6 @@ const { daiContract, disallowedPools, disallowedSymbols, disallowedTo,
         async postSwap(swap) {
             try {
                 const response = await api.post(`/api/blocks`, swap);
-                console.log(response.status)
             } catch {
                 console.log('error posting swap')
             }

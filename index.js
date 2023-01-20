@@ -45,4 +45,3 @@ const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
 const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
 
-blockFiller.fillBetween(16445655, 16445655);
