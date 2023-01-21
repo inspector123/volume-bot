@@ -60,21 +60,20 @@ export class BlockFiller {
         const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
         const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
 
-        let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: minBlockNumber-1000, toBlock: minBlockNumber-1})
+        let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: minBlockNumber-blocks, toBlock: minBlockNumber-1})
         console.log('swaps length: ', swaps.length)
-        let swapsToSend = []
 
         //progress bar
         const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
         bar1.start(swaps.length, 0);
 
-        for (let i in swaps) {
-            let parsedSwap = await this.swapParser.grabSwap(swaps[i]);
-            bar1.increment();
-        }
+        // for (let i in swaps) {
+        //     let parsedSwap = await this.swapParser.grabSwap(swaps[i]);
+        //     bar1.increment();
+        // }
         // stop the progress bar
         bar1.stop();
-        console.log('SWAPS TO SEND LENGTH:', swapsToSend.length)
+        console.log('SWAPS LENGTH:', swaps.length)
         const totalTime = Date.now()-time1;
         console.log(`time for blocks: ${totalTime/1000}`)
         return;

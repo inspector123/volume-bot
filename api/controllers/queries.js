@@ -50,23 +50,24 @@ export const getBlock = (req, res, next) => {
           length: data?.length,
           data: data,
         });
-    });}
-    if (req.query.sortBySymbol) {
-      conn.query(
-        "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
-        [req.params.blockNumber],
-        function (err, data, fields) {
-          if (err) return next(new AppError(err, 500));
-          res.status(200).json({
-            status: "success",
-            length: data?.length,
-            data: data,
-          });
-        }
-      );
-    } if (!req.query) {
-      console.log('missing query')
-    }
+    });
+  }
+  if (req.query.sortBySymbol) {
+    conn.query(
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      [req.params.blockNumber],
+      function (err, data, fields) {
+        if (err) return next(new AppError(err, 500));
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+      }
+    );
+  } if (!req.query) {
+    console.log('missing query')
+  }
 };
 
 //CONTRACTS
@@ -101,7 +102,7 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
     )
   } else {
     conn.query(
-      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume5m,volume15m,volume1h,volume1d) VALUES(?)",
+      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume5m,volume15m,volume1h,volume1d, liqlockBlock, renounceBlock) VALUES(?)",
       [Object.values(req.body)],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -123,17 +124,28 @@ export const createContracts = async(req, res, next) => {
 }
 
 export const updateContract = (req, res, next) => {
-  if (!req.params.contract) {
+  if (!req.body.contract) {
     return next(new AppError("No block id found", 404));
   }
+  const { contract } = req.body;
+  // get body keys, and  body values
+  let { body } = req;
+  delete body.id;
+  delete body.contract;
+  delete body.symbol;
+  const keys = Object.keys(body);
+  const values = Object.values(body);
+  const keysString = `${keys.reduce((i,j)=>{
+    return `${i} = ?,${j}`
+  })}=?`
   conn.query(
-    "UPDATE Contracts SET Volume5m = ? WHERE contract=?",
-    [req.query.volume5m, req.params.contract],
+    `UPDATE Contracts SET ${keysString} WHERE contract=?`,
+    [...values, contract],
     function (err, data, fields) {
       if (err) return next(new AppError(err, 500));
-      res.status(201).json({
-        status: "success",
-        message: `contract ${req.params.contract} updated`,
+      res.status(200).json({
+        data: data,
+        status: "success"
       });
     }
   );
@@ -250,4 +262,35 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   PRIMARY KEY(id)
   );
 
+
+  id          | int         | NO   | PRI | NULL    | auto_increment |
+| symbol      | varchar(50) | NO   |     | NULL    |                |
+| contract    | varchar(50) | NO   |     | NULL    |                |
+| liqAddBlock | double      | NO   |     | NULL    |                |
+| volume5m    | double      | NO   |     | NULL    |                |
+| volume15m   | double      | NO   |     | NULL    |                |
+| volume1h    | double      | NO   |     | NULL    |                |
+| volume1d    | double  
+
+
+CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
+  symbol varchar(50),
+  contract varchar(50),
+liqAddBlock double,
+volume5m double,
+volume15m double,
+volume1h double,
+volume1d double,
+liqlockBlock double,
+renounceBlock double, 
+PRIMARY KEY(id)
+  );
+
+  and have new topic watchers for liq lock and renounce. then we will find the contract and post to that contract if it exists.
+
+
+  can do that from here as well.
+
    */
+
+  

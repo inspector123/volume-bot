@@ -17,9 +17,8 @@ router.route("/api/blocks/:blockNumber")
 //contracts table
 router.route("/api/contracts").post(createContractOrGetMatchingContracts); //have ?matching to figure out if it's gonna be the one post or the other
 
-router.route("/api/contracts/:contract") //?volume5m=...
+router.route("/api/contracts") //?volume5m=...
     .put(updateContract)
-    .delete(deleteContract);
 
 
 //PAIRS

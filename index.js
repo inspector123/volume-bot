@@ -33,15 +33,15 @@ app.listen(PORT, () => {
  console.log(`server running on port ${PORT}`);
 });
 
-const fullNodeIp = "192.168.0.228"
-const archiveNodeIp = "192.168.0.155"
+//const fullNodeIp = "192.168.0.228"
+const archiveNodeIp = "192.168.0.228" //put it on laptop now
 const httpPort = "9535"
 const wssPort = "9536"
 
-const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
+//const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
-//const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY, fullNodeUrl, archiveNodeUrl);
-
-const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-
+const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
+watcher.start();
+// const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+// blockFil
