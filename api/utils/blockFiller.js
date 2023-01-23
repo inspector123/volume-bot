@@ -21,14 +21,16 @@ import basicTokenABI from '../abi/basicTokenABI.json' assert { type: "json" };
 import swapParser from './swapParser.js'
 import Constants from "./constants.js"
 import cliProgress from 'cli-progress'
-
+import SwapParser from '../utils/swapParser.js';
 
 const { daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
     mevBot1, mevBot2, busdETH, USDCUSDT, v2USDTDAI, sushiswapUSDTv2, v3DAI_2, v2USDC, 
     pancakeUSDC, pancakeUSDT, v2USDT, v3_DaiUSDCv4, v3USDC, v3Usdt, v3DaiUsdt,
     KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT, wstETH,
     acceptedRouters, botContracts, UniswapV3Router2, OneInchV4Router,OneInchv5Router,SushiSwapRouter, UniswapV2, StablesOrEth, apiKey } = Constants;
-import SwapParser from '../utils/swapParser.js';
+const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
+const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
+
 
 export class BlockFiller {
 
@@ -56,122 +58,13 @@ export class BlockFiller {
         const response = await api.get(`/api/blocks/1?min=true`);
         const { minBlockNumber } = response.data.data[0];
         console.log('starting block: ', minBlockNumber)
-        console.log('getting all pairs')
-        await this.swapParser.getAllPairs();
-        let time1 = Date.now();
-        const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
-        const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
-
-        let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: minBlockNumber-blocks, toBlock: minBlockNumber-1})
-        console.log('swaps length: ', swaps.length)
-
-        const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-        bar1.start(swaps.length, 0);
-
-        for (let i in swaps) {
-            let parsedSwap = await this.swapParser.grabSwap(swaps[i]);
-            bar1.increment();
-        }
-        // stop the progress bar
-        bar1.stop();
-        let totalTime = Date.now()-time1;
-        console.log(`time for blocks: ${totalTime/1000}`)
-
-        console.log('part 2: sending pairs to api. ')
-        const bar2 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-        bar2.start(this.swapParser.newPairsData.length, 0);
-        time1 = Date.now();
-        for (let i in this.swapParser.newPairsData) {
-            try {
-                await api.post('/api/pairs', this.swapParser.newPairsData[i])
-                bar2.increment();
-            }catch(e) {
-                console.log(e.response.data)
-            }
-        }
-        totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', totalTime)
-
-        const bar3 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-        bar3.start(this.swapParser.allSwapsData.length, 0);
-        time1 = Date.now();
+        await this.runSwapParseSqlRoutine(minBlockNumber-1000, minBlockNumber-1)
         
-
-        for (let i in this.swapParser.allSwapsData) {
-            try {
-                await api.post('/api/blocks', this.swapParser.allSwapsData[i])
-                bar3.increment();
-            }catch(e) {
-                console.log(e.response.data)
-            }
-        }
-        totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', totalTime)
-        return;
     }
 
     async fillBetween(block1,block2) {
         console.log('starting block: ', block1, 'ending block: ', block2)
-        console.log('getting all pairs')
-        await this.swapParser.getAllPairs();
-        let time1 = Date.now();
-        const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
-        const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
-
-        let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: block1, toBlock: block2})
-        console.log('swaps length: ', swaps.length)
-        let swapsToSend = []
-        //progress bar
-        const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-        bar1.start(swaps.length, 0);
-
-        for (let i in swaps) {
-            let parsedSwap = await this.swapParser.grabSwap(swaps[i]);
-            bar1.increment();
-        }
-        // stop the progress bar
-        bar1.stop();
-        console.log('SWAPS TO SEND LENGTH:', swapsToSend.length)
-        let totalTime = Date.now()-time1;
-        console.log(`time for blocks: ${totalTime/1000}`)
-
-        console.log('part 2: sending pairs to api. ')
-        const bar2 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-        bar2.start(this.swapParser.newPairsData.length, 0);
-        time1 = Date.now();
-        for (let i in this.swapParser.newPairsData) {
-            try {
-                api.post('/api/pairs', this.swapParser.newPairsData[i])
-                bar2.increment();
-            }catch(e) {
-                console.log(e.response.data)
-            }
-        }
-        totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', totalTime/1000)
-
-        const bar3 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-        bar3.start(this.swapParser.allSwapsData.length, 0);
-        time1 = Date.now();
-        for (let i in this.swapParser.allSwapsData) {
-            try {
-                api.post('/api/blocks', this.swapParser.allSwapsData[i])
-                bar3.increment();
-            }catch(e) {
-                console.log(e.response.data)
-            }
-        }
-        totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', totalTime/1000)
-
-
-        return;
+        await this.runSwapParseSqlRoutine(block1, block2)
     }
 
     async sendToApi(swaps) {
@@ -192,8 +85,70 @@ export class BlockFiller {
         }
     }
 
+    async runSwapParseSqlRoutine(fromBlock, toBlock) {
+        try {
+            if (!fromBlock || !toBlock) throw new Error('missing from or to block')
+            console.log('getting all pairs')
+            await this.swapParser.getAllPairs();
+            let time1 = Date.now();
+
+            let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock, toBlock})
+            console.log('swaps length: ', swaps.length)
+
+            const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+
+            bar1.start(swaps.length, 0);
+
+            for (let i in swaps) {
+                let parsedSwap = await this.swapParser.grabSwap(swaps[i]);
+                bar1.increment();
+            }
+            // stop the progress bar
+            bar1.stop();
+            let totalTime = Date.now()-time1;
+            console.log(`time for blocks: ${totalTime/1000}`)
+
+            console.log('part 2: sending pairs to api. ')
+            const bar2 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+
+            bar2.start(this.swapParser.newPairsData.length, 0);
+            time1 = Date.now();
+            for (let i in this.swapParser.newPairsData) {
+                try {
+                    await api.post('/api/pairs', this.swapParser.newPairsData[i])
+                    bar2.increment();
+                }catch(e) {
+                    console.log(e.response.data)
+                }
+            }
+            totalTime = Date.now()-time1;
+            console.log('time to post all pairs: ', totalTime)
+
+            const bar3 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+
+            bar3.start(this.swapParser.allSwapsData.length, 0);
+            time1 = Date.now();
+
+
+            for (let i in this.swapParser.allSwapsData) {
+                try {
+                    await api.post('/api/blocks', this.swapParser.allSwapsData[i])
+                    bar3.increment();
+                }catch(e) {
+                    console.log(e.response.data)
+                }
+            }
+            totalTime = Date.now()-time1;
+            console.log('time to post all pairs: ', totalTime)
+            return;
+        } catch(e) {
+            console.error(e)
+        }
+    }
+
 
 }
+
 
 //notes
 

@@ -205,10 +205,12 @@ export const getPairByPairAddress = async (req, res, next) => {
 export const createPair = async (req, res, next) => {
   if (!req.body) return next(new AppError("No form data found", 404));
   let { body } = req;
-  
-  const _body = Object.values(body)
+  if (!body.length) return;
+  const _body = body.map(b=>{
+    return Object.values(b)
+  })
   const result = conn.query(
-    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(),[_body], (err,data)=>{
+    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(_body),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
