@@ -50,7 +50,7 @@ export class LatestBlockWatcher {
 
             // }
 
-            this.blockFiller.runSwapParseSqlRoutine(block,block);
+            await this.blockFiller.runSwapParseSqlRoutine(block,block);
 
 
         })
@@ -61,26 +61,4 @@ export class LatestBlockWatcher {
         // })
 
     }
-    // async send() {
-    //     let time1 = Date.now();
-    //     try {
-    //         await api.post('/api/pairs', this.swapParser.newPairsData)
-    //     } catch(e) {
-    //         console.log(e)
-    //     }
-    //     let totalTime = Date.now()-time1;
-    //     console.log('time to post all pairs: ', totalTime/1000)
-    //     console.log('sending blocks to api. ')
-    //     time1 = Date.now();
-    //     try {
-    //         await api.post('/api/blocks', this.swapParser.allSwapsData)
-    //     } catch(e) {
-    //         console.log(e)
-    //     }
-    //     totalTime = (Date.now()-time1)/1000;
-    //     console.log('time to post all blocks: ', totalTime)
-    //     console.log('DONE.');
-    //     this.swapParser.reset();
-    //     return;
-    // }
 }

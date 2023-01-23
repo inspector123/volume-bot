@@ -100,19 +100,25 @@ export class BlockFiller {
 
             console.log('part 2: sending pairs to api. ')
             time1 = Date.now();
-            try {
-                await api.post('/api/pairs', this.swapParser.newPairsData)
-            }catch(e) {
-                console.log(e.response.data)
+            console.log(this.swapParser.newPairsData.length, 'pair length to post')
+            console.log(this.swapParser.newPairsData)
+            if (this.swapParser.newPairsData.length) {
+                try {
+                    await api.post('/api/pairs', this.swapParser.newPairsData)
+                }catch(e) {
+                    console.log(e.response.data)
+                }
             }
             totalTime = Date.now()-time1;
             console.log('time to post all pairs: ', totalTime/1000)
             console.log('part 3: sending blocks to api. ')
             time1 = Date.now();
-            try {
-                await api.post('/api/blocks', this.swapParser.allSwapsData)
-            }catch(e) {
-                console.log(e.response.data)
+            if (this.swapParser.allSwapsData.length) {
+                try {
+                    await api.post('/api/blocks', this.swapParser.allSwapsData)
+                }catch(e) {
+                    console.log(e.response.data)
+                }
             }
             totalTime = (Date.now()-time1)/1000;
             console.log('time to post all blocks: ', totalTime)

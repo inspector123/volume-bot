@@ -56,12 +56,13 @@ switch(process.env.PROGRAM) {
             `);
             await blockFiller.fillBlocksFromBehind(1000);
         }
-        break;
+        process.exit();
     case "FILLIN": 
         if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
         const _blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
         console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
         await _blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
+        console.log('Completed.')
         process.exit();
     case "CONTRACTS": 
         const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);

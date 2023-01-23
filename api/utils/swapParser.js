@@ -80,12 +80,15 @@ class SwapParser {
     getPair(pairAddress) {
         const alreadyFoundPair = this.alreadyFoundPairs.filter(p=>p.pairAddress==pairAddress);
         if (alreadyFoundPair.length) {
+            console.log('alreadyFoundPair', alreadyFoundPair.length)
             return alreadyFoundPair;
         } else {
             const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
             if (findPair.length) {
                 this.alreadyFoundPairs = [...this.alreadyFoundPairs, findPair[0]];
             }
+            console.log(findPair.length, 'findPair')
+            if (!findPair.length) console.log('did not find pair')
             return findPair
         }
 
