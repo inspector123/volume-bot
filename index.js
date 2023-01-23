@@ -29,7 +29,7 @@ app.all("*", (req, res, next) => {
  next(new AppError(`The URL ${req.originalUrl} does not exist`, 404));
 });
 app.use(errorHandler);
-app.listen(PORT, () => {
+app.listen(process.env.PORT, () => {
  console.log(`server running on port ${PORT}`);
 });
 
@@ -42,7 +42,7 @@ const wssPort = "9536"
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
 
-switch(process.env.program) {
+switch(process.env.PROGRAM) {
     case "GETOLDBLOCKS":
         const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
         const totalFills = 100;
@@ -60,8 +60,9 @@ switch(process.env.program) {
     case "FILLIN": 
         if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
         const _blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-        await _blockFiller.fillBetween(process.env.FROMBLOCK, process.env.TOBLOCK);
-        break;
+        console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
+        await _blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
+        process.exit();
     case "CONTRACTS": 
         const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
         watcher.start();
@@ -72,5 +73,5 @@ switch(process.env.program) {
         latestWatcher.start();
         break;
     default: 
-        throw new Error(`did not include program="FILLBLOCKS", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)
+        throw new Error(`did not include program="FILLBLOCKS", program="FILLIN", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)
 }
