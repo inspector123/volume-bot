@@ -66,7 +66,6 @@ switch(process.env.program) {
         const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl)
         latestWatcher.start();
         break;
-        // const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
-        // watcher.start();
-
+    default: 
+        throw new Error(`did not include program="FILLBLOCKS", program="CONTRACTS" or program="LATEST". e.g. program="LATEST" npm run start`)
 }
