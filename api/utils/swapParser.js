@@ -10,6 +10,7 @@ import univ2PairABI from '../abi/univ2PairABI.json' assert { type: "json" };
 import univ3PoolABI from '../abi/uniV3PoolABI.json' assert { type: "json" };
 import KyberswapABI from '../abi/KyberswapABI.json' assert { type: "json" };
 import basicTokenABI from '../abi/basicTokenABI.json' assert { type: "json" };
+import veryBankingBytes32ABI from '../abi/veryBankingBytes32ABI.json' assert { type: "json"};
 
 import Constants from './constants.js';
 const { daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
@@ -68,7 +69,7 @@ class SwapParser {
         }
     }
 
-    async getPair(pairAddress) {
+    getPair(pairAddress) {
         return this.allPairsData.filter(p=>p.pairAddress == pairAddress);
     }
 
@@ -94,8 +95,8 @@ class SwapParser {
     async handlev2Log(log) {
         try {
         
-            // const tx = await this.httpProvider.getTransaction(log.transactionHash);
-            // if (!acceptedRouters.includes(tx.to)) return; 
+            const tx = await this.httpProvider.getTransaction(log.transactionHash);
+            if (!acceptedRouters.includes(tx.to)) return; 
             const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
@@ -113,7 +114,6 @@ class SwapParser {
                     token0Decimals, token1Decimals, 
                     token0Symbol, token1Symbol, 
                     token0TotalSupply, token1TotalSupply } = pair[0] );
-                //console.log(token0, token1)
             } else {
                 token0 = await _v2Pair.token0();
                 token1 = await _v2Pair.token1();
@@ -237,8 +237,8 @@ class SwapParser {
                 usdPrice: usdPrice,
                 isBuy: transactionType,
                 txHash: log.transactionHash,
-                wallet: "tx.from",
-                router: "this.routerName(tx.to)",
+                wallet: tx.from,
+                router: this.routerName(tx.to),
                 etherPrice: this.etherPrice,
                 marketCap: marketCap == null ? 0 : marketCap
             }
@@ -269,8 +269,8 @@ class SwapParser {
     async handlev3Log(log) {
         try {
             //console.log(receipt)
-            // const tx = await this.httpProvider.getTransaction(log.transactionHash)
-            // if (!acceptedRouters.includes(tx.to)) return; 
+            const tx = await this.httpProvider.getTransaction(log.transactionHash)
+            if (!acceptedRouters.includes(tx.to)) return; 
             const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
@@ -396,8 +396,8 @@ class SwapParser {
                 usdPrice: usdPrice,
                 isBuy: transactionType,
                 txHash: log.transactionHash,
-                wallet: "tx.from",
-                router: "this.routerName(tx.to)",
+                wallet: tx.from,
+                router: this.routerName(tx.to),
                 etherPrice: this.etherPrice,
                 marketCap: marketCap == null ? 0 : marketCap
             }
@@ -435,13 +435,21 @@ class SwapParser {
                 return USDTContractDetails;
             case DAI:
                 return DAIContractDetails;
-            default:
-                const _token = new ethers.Contract(token, basicTokenABI, this.httpProvider)
-                return {
+            case Constants.bytes32Contracts.includes(token):
+                let _token = new ethers.Contract(token, veryBankingBytes32ABI, this.httpProvider)
+                const details = {
                     totalSupply: (await _token.totalSupply()).toString(),
                     decimals: await _token.decimals(),
-                    symbol: await _token.symbol()
-                }
+                    symbol: ethers.utils.parseBytes32String(await _token.symbol())
+                };
+                
+            default:
+                let _token2 = new ethers.Contract(token, basicTokenABI, this.httpProvider)
+                return {
+                    totalSupply: (await _token2.totalSupply()).toString(),
+                    decimals: await _token2.decimals(),
+                    symbol: await _token2.symbol()
+                };
         }
 
 

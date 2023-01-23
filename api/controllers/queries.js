@@ -16,9 +16,15 @@ export const createBlock = async (req, res, next) => {
   if (!req.body) return next(new AppError("No form data found", 404));
   let { body } = req;
 
-  const _body = Object.values(body)
+  //const _body = Object.values(body)
+
+  const _body = body.map(b=>{
+    return Object.values(b)
+  })
+
+
   const result = conn.query(
-    "INSERT INTO BlockEvents (blockNumber,symbol,contract,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);",[_body], (err,data)=>{
+    "INSERT INTO BlockEvents (blockNumber,symbol,contract,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -65,6 +71,17 @@ export const getBlock = (req, res, next) => {
         });
       }
     );
+  } if(req.query.max) {
+    conn.query(
+      "SELECT max(blockNumber) as maxBlockNumber from BlockEvents",
+      function (err, data, fields) {
+        if(err) return next(new AppError(err))
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+    });
   } if (!req.query) {
     console.log('missing query')
   }
@@ -210,7 +227,7 @@ export const createPair = async (req, res, next) => {
     return Object.values(b)
   })
   const result = conn.query(
-    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(_body),_body, (err,data)=>{
+    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({

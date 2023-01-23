@@ -53,6 +53,11 @@ const bigcapbot1="0xb7fd3575c614d8f2ffd50ce48c199b0aafa2c0bc"
 const bigcapbot2="0x63af5004090c15a2df73e9b2a4064801ce70da30"
 const botContracts= ["0xa612d7680a249581beDEE885ddCed743E8BCaa9e", "0x27dE7D1dEbaBBE7f63383F9A81793b3f19438321",bigcapbot1, bigcapbot2]
 
+const veryBankingContract = "0xCFe4EB08e33272d98cb31e37A7BE78d5C1b740c1"
+const dForceContract = "0x431ad2ff6a9C365805eBaD47Ee021148d6f7DBe0";
+
+const bytes32Contracts = [veryBankingContract, dForceContract, "0x9469D013805bFfB7D3DEBe5E7839237e535ec483"]
+
 //Pools
 
 const v3DaiUsdt = "0x6f48ECa74B38d2936B02ab603FF4e36A6C0E3A77"
@@ -91,7 +96,7 @@ const Constants = { daiContract, disallowedPools, disallowedSymbols, disallowedT
     pancakeUSDC, pancakeUSDT, v2USDT, v3_DaiUSDCv4, v3USDC, v3Usdt, v3DaiUsdt,
     KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT,
     acceptedRouters, botContracts, UniswapV3Router2, OneInchV4Router,OneInchv5Router,SushiSwapRouter, UniswapV2, StablesOrEth, apiKey,
-    v3topic, v2topic, wstETH, WETHContractDetails, USDTContractDetails, USDCContractDetails, DAIContractDetails
+    v3topic, v2topic, wstETH, WETHContractDetails, USDTContractDetails, USDCContractDetails, DAIContractDetails, veryBankingContract, bytes32Contracts
 }
 
 export default Constants

@@ -19,8 +19,7 @@ const {
     PORT
  } = process.env;
 const app = express();
-
-app.use(bodyParser.json())
+app.use(bodyParser.json({limit:'500mb'}))
 app.use(router);
 
 app.use(cors());
@@ -44,4 +43,29 @@ const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 // const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
 // watcher.start();
 const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-await blockFiller.fillBlocksFromBehind(100)
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(1000);
