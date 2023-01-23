@@ -34,8 +34,8 @@ app.listen(PORT, () => {
 });
 
 //const fullNodeIp = "192.168.0.228"
-const archiveNodeIp = "192.168.0.165" //put it on laptop now
-const httpPort = "9535"
+const archiveNodeIp = "127.0.0.1" //put it on laptop now
+const httpPort = "8545"
 const wssPort = "9536"
 
 //const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
@@ -44,4 +44,4 @@ const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 // const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
 // watcher.start();
 const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-await blockFiller.fillBlocksFromBehind(1000);
+await blockFiller.fillBlocksFromBehind(100)
