@@ -1,7 +1,7 @@
 import mysql from 'mysql2';
 import * as dotenv from 'dotenv';
 dotenv.config();
-const conn = mysql.createConnection({
+const conn = mysql.createPool({
  host: "127.0.0.1",
  port: 3306,
  user: "ethDBUser",
@@ -10,9 +10,9 @@ const conn = mysql.createConnection({
  multipleStatements: true
 });
 
-conn.connect((err, res) => {
-    if (err) console.log(err);
-    return;
-});
+// conn.connect((err, res) => {
+//     if (err) console.log(err);
+//     return;
+// });
 
 export default conn;

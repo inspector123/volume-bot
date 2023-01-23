@@ -223,6 +223,17 @@ export const createPair = async (req, res, next) => {
   return;
 
 }
+// get all pairs : getting by pair address is too inefficient.
+export const getAllPairs = async (req, res, next) => {
+  conn.query("SELECT * FROM Pairs", function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
+}
 
 /*
 CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,

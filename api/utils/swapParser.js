@@ -26,6 +26,9 @@ class SwapParser {
     httpProvider;
     etherPrice = 1200;
     btcPrice = 16900;
+    allPairsData = [];
+    newPairsData = [];
+    allSwapsData = [];
 
 
     constructor(httpProviderUrl) {
@@ -56,29 +59,44 @@ class SwapParser {
         }
     }
 
-    async getPair(pairAddress) {
+    async getAllPairs() {
         try {
-            const response = await api.get(`/api/pairs/${pairAddress}`)
-            return response.data.data
+            const response = await api.get(`/api/pairs`)
+            this.allPairsData = response.data.data;
         } catch {
             console.log('error getting pair')
         }
     }
 
-    async postSwap(swap) {
-        try {
-            const response = await api.post(`/api/blocks`, swap);
-        } catch {
-            console.log('error posting swap')
-        }
+    async getPair(pairAddress) {
+        return this.allPairsData.filter(p=>p.pairAddress == pairAddress);
     }
+
+    addToSwaps(swap) {
+        this.allSwapsData = [...this.allSwapsData, swap]
+    }
+
+    addToPairs(pairBody) {
+        this.newPairsData = [...this.newPairsData, pairBody];
+        this.allPairsData = [...this.allPairsData, pairBody];
+    }
+
+    // async postAllPairs() {
+    //     for (let i in this.newPairsData) {
+    //         try {
+    //             await api.post('/api/pairs', pairBody)
+    //         }catch(e) {
+    //             console.log(e.response.data)
+    //         }
+    //     }
+    // }
 
     async handlev2Log(log) {
         try {
         
-            const tx = await this.httpProvider.getTransaction(log.transactionHash);
-            if (!acceptedRouters.includes(tx.to)) return; 
-            const pair = await this.getPair(log.address);
+            // const tx = await this.httpProvider.getTransaction(log.transactionHash);
+            // if (!acceptedRouters.includes(tx.to)) return; 
+            const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
             token0Symbol, token1Symbol, 
@@ -219,8 +237,8 @@ class SwapParser {
                 usdPrice: usdPrice,
                 isBuy: transactionType,
                 txHash: log.transactionHash,
-                wallet: tx.from,
-                router: this.routerName(tx.to),
+                wallet: "tx.from",
+                router: "this.routerName(tx.to)",
                 etherPrice: this.etherPrice,
                 marketCap: marketCap == null ? 0 : marketCap
             }
@@ -239,9 +257,9 @@ class SwapParser {
                     token1TotalSupply
                 }
 
-                await this.postPair(pairBody)
+                this.addToPairs(pairBody)
             }
-            await this.postSwap(v2SwapsToAdd)
+            this.addToSwaps(v2SwapsToAdd)
             return v2SwapsToAdd
         } catch(e) {
             console.log(e)
@@ -251,9 +269,9 @@ class SwapParser {
     async handlev3Log(log) {
         try {
             //console.log(receipt)
-            const tx = await this.httpProvider.getTransaction(log.transactionHash)
-            if (!acceptedRouters.includes(tx.to)) return; 
-            const pair = await this.getPair(log.address);
+            // const tx = await this.httpProvider.getTransaction(log.transactionHash)
+            // if (!acceptedRouters.includes(tx.to)) return; 
+            const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
             token0Symbol, token1Symbol, 
@@ -378,8 +396,8 @@ class SwapParser {
                 usdPrice: usdPrice,
                 isBuy: transactionType,
                 txHash: log.transactionHash,
-                wallet: tx.from,
-                router: this.routerName(tx.to),
+                wallet: "tx.from",
+                router: "this.routerName(tx.to)",
                 etherPrice: this.etherPrice,
                 marketCap: marketCap == null ? 0 : marketCap
             }
@@ -397,9 +415,9 @@ class SwapParser {
                     token1TotalSupply
                 }
 
-                await this.postPair(pairBody)
+                this.addToPairs(pairBody)
             }
-            await this.postSwap(v3Swap)
+            this.addToSwaps(v3Swap)
             return v3Swap
         }
         catch(e) {

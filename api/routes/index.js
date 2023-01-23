@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, createPair, getPairByPairAddress } from '../controllers/queries.js';
+import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, createPair, getPairByPairAddress, getAllPairs } from '../controllers/queries.js';
 const router = express.Router();
 //
 
@@ -24,6 +24,7 @@ router.route("/api/contracts") //?volume5m=...
 //PAIRS
 
 router.route("/api/pairs")
+    .get(getAllPairs)
     .post(createPair);
 
 router.route("/api/pairs/:pairAddress")
