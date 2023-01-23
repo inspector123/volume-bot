@@ -100,16 +100,6 @@ class SwapParser {
         this.allPairsData = [...this.allPairsData, pairBody];
     }
 
-    // async postAllPairs() {
-    //     for (let i in this.newPairsData) {
-    //         try {
-    //             await api.post('/api/pairs', pairBody)
-    //         }catch(e) {
-    //             console.log(e.response.data)
-    //         }
-    //     }
-    // }
-
     async handlev2Log(log) {
         try {
         
