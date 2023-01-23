@@ -58,7 +58,7 @@ export class BlockFiller {
         console.log('starting block: ', minBlockNumber)
         console.log('getting all pairs')
         await this.swapParser.getAllPairs();
-        const time1 = Date.now();
+        let time1 = Date.now();
         const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
         const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
 
@@ -75,8 +75,7 @@ export class BlockFiller {
         }
         // stop the progress bar
         bar1.stop();
-        console.log('SWAPS TO SEND LENGTH:', swapsToSend.length)
-        const totalTime = Date.now()-time1;
+        let totalTime = Date.now()-time1;
         console.log(`time for blocks: ${totalTime/1000}`)
 
         console.log('part 2: sending pairs to api. ')
@@ -93,12 +92,14 @@ export class BlockFiller {
             }
         }
         totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', total)
+        console.log('time to post all pairs: ', totalTime)
 
         const bar3 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
-        bar3.start(this.swapParser.newPairsData.length, 0);
+        bar3.start(this.swapParser.allSwapsData.length, 0);
         time1 = Date.now();
+        
+
         for (let i in this.swapParser.allSwapsData) {
             try {
                 await api.post('/api/blocks', this.swapParser.allSwapsData[i])
@@ -108,7 +109,7 @@ export class BlockFiller {
             }
         }
         totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', total)
+        console.log('time to post all pairs: ', totalTime)
         return;
     }
 
@@ -116,7 +117,7 @@ export class BlockFiller {
         console.log('starting block: ', block1, 'ending block: ', block2)
         console.log('getting all pairs')
         await this.swapParser.getAllPairs();
-        const time1 = Date.now();
+        let time1 = Date.now();
         const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"))
         const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
 
@@ -135,7 +136,7 @@ export class BlockFiller {
         // stop the progress bar
         bar1.stop();
         console.log('SWAPS TO SEND LENGTH:', swapsToSend.length)
-        const totalTime = Date.now()-time1;
+        let totalTime = Date.now()-time1;
         console.log(`time for blocks: ${totalTime/1000}`)
 
         console.log('part 2: sending pairs to api. ')
@@ -145,29 +146,29 @@ export class BlockFiller {
         time1 = Date.now();
         for (let i in this.swapParser.newPairsData) {
             try {
-                await api.post('/api/pairs', this.swapParser.newPairsData[i])
+                api.post('/api/pairs', this.swapParser.newPairsData[i])
                 bar2.increment();
             }catch(e) {
                 console.log(e.response.data)
             }
         }
         totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', total)
+        console.log('time to post all pairs: ', totalTime/1000)
 
         const bar3 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
-        bar3.start(this.swapParser.newPairsData.length, 0);
+        bar3.start(this.swapParser.allSwapsData.length, 0);
         time1 = Date.now();
         for (let i in this.swapParser.allSwapsData) {
             try {
-                await api.post('/api/blocks', this.swapParser.allSwapsData[i])
+                api.post('/api/blocks', this.swapParser.allSwapsData[i])
                 bar3.increment();
             }catch(e) {
                 console.log(e.response.data)
             }
         }
         totalTime = Date.now()-time1;
-        console.log('time to post all pairs: ', total)
+        console.log('time to post all pairs: ', totalTime/1000)
 
 
         return;

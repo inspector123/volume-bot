@@ -208,7 +208,7 @@ export const createPair = async (req, res, next) => {
   
   const _body = Object.values(body)
   const result = conn.query(
-    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);",[_body], (err,data)=>{
+    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(),[_body], (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
