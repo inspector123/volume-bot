@@ -34,7 +34,7 @@ app.listen(PORT, () => {
 });
 
 //const fullNodeIp = "192.168.0.228"
-const archiveNodeIp = "192.168.0.228" //put it on laptop now
+const archiveNodeIp = "192.168.0.165" //put it on laptop now
 const httpPort = "9535"
 const wssPort = "9536"
 
