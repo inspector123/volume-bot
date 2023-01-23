@@ -56,7 +56,7 @@ const botContracts= ["0xa612d7680a249581beDEE885ddCed743E8BCaa9e", "0x27dE7D1dEb
 const veryBankingContract = "0xCFe4EB08e33272d98cb31e37A7BE78d5C1b740c1"
 const dForceContract = "0x431ad2ff6a9C365805eBaD47Ee021148d6f7DBe0";
 
-const bytes32Contracts = [veryBankingContract, dForceContract, "0x9469D013805bFfB7D3DEBe5E7839237e535ec483"]
+const bytes32Contracts = [veryBankingContract, dForceContract, "0x9469D013805bFfB7D3DEBe5E7839237e535ec483", "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2"]
 
 //Pools
 
