@@ -82,7 +82,19 @@ export const getBlock = (req, res, next) => {
           data: data,
         });
     });
-  } if (!req.query) {
+  } if (req.query.count) {
+    conn.query(
+      "SELECT count(id) as count from BlockEvents",
+      function (err, data, fields) {
+        if(err) return next(new AppError(err))
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+    });
+  }
+  if (!req.query) {
     console.log('missing query')
   }
 };

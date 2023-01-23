@@ -47,7 +47,6 @@ export class BlockFiller {
     }
 
     async contractsSetup() {
-        
         const blockNumber = await this.archiveProvider.getBlockNumber();
         console.log(`latest archive block: ${blockNumber}`)
     }
@@ -77,6 +76,8 @@ export class BlockFiller {
     async runSwapParseSqlRoutine(fromBlock, toBlock) {
         try {
             if (!fromBlock || !toBlock) throw new Error('missing from or to block')
+            const { data: {data}} = await api.get('/api/blocks/1?count=true')
+            console.log('current block count: ', data[0].count);
             console.log('getting all pairs')
             await this.swapParser.getAllPairs();
             let time1 = Date.now();
@@ -113,9 +114,13 @@ export class BlockFiller {
             }catch(e) {
                 console.log(e.response.data)
             }
-            totalTime = Date.now()-time1;
-            console.log('time to post all blocks: ', totalTime/1000)
+            totalTime = (Date.now()-time1)/1000;
+            console.log('time to post all blocks: ', totalTime)
             console.log('DONE.')
+            const { data: {data: _data}} = await api.get('/api/blocks/1?count=true');
+            console.log('current block count: ', _data[0].count);
+            console.log('blocks sent: ', _data[0].count-data[0].count);
+            console.log('blocks/s: ', (_data[0].count-data[0].count)/totalTime);
             return;
         } catch(e) {
             console.error(e)
