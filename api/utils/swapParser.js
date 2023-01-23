@@ -30,6 +30,7 @@ class SwapParser {
     allPairsData = [];
     newPairsData = [];
     allSwapsData = [];
+    alreadyFoundPairs = [];
 
 
     constructor(httpProviderUrl) {
@@ -69,14 +70,21 @@ class SwapParser {
         }
     }
 
+    reset() {
+        this.allPairsData = [];
+        this.newPairsData = [];
+        this.allSwapsData = [];
+        this.alreadyFoundPairs = [];
+    }
+
     getPair(pairAddress) {
-        const alreadyFound = this.alreadyFoundPairs.filter(p=>p.address==pairAddress);
-        if (alreadyFound.length) {
-            return alreadyFound;
+        const alreadyFoundPair = this.alreadyFoundPairs.filter(p=>p.pairAddress==pairAddress);
+        if (alreadyFoundPair.length) {
+            return alreadyFoundPair;
         } else {
             const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
             if (findPair.length) {
-                alreadyFound = [...alreadyFound, findPair[0]];
+                this.alreadyFoundPairs = [...this.alreadyFoundPairs, findPair[0]];
             }
             return findPair
         }

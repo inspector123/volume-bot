@@ -8,6 +8,7 @@ import AppError from "./api/utils/AppError.js";
 import errorHandler from "./api/utils/errorHandler.js";
 import bodyParser from 'body-parser'
 import { BlockFiller } from './api/utils/blockFiller.js'
+import { LatestBlockWatcher } from './LatestBlockWatcher.js'
 
 dotenv.config();
 const {
@@ -33,24 +34,39 @@ app.listen(PORT, () => {
 });
 
 //const fullNodeIp = "192.168.0.228"
-const archiveNodeIp = "127.0.0.1" //put it on laptop now
+const archiveNodeIp = "127.0.0.1"
 const httpPort = "8545"
 const wssPort = "9536"
 
 //const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
-// const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
-// watcher.start();
-const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-const totalFills = 100;
-for (let i = 0; i<totalFills; i++) {
-    console.log(`
---------------------------------------------------------------------------
-STARTING BLOCK FILL ${i+1} OF ${totalFills}
-    
---------------------------------------------------------------------------
 
-    `);
-    await blockFiller.fillBlocksFromBehind(1000);
+switch(process.env.program) {
+    case "FILLBLOCKS":
+        const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+        const totalFills = 100;
+        for (let i = 0; i<totalFills; i++) {
+            console.log(`
+        --------------------------------------------------------------------------
+        STARTING BLOCK FILL ${i+1} OF ${totalFills}
+            
+        --------------------------------------------------------------------------
+        
+            `);
+            await blockFiller.fillBlocksFromBehind(1000);
+        }
+        break;
+    case "CONTRACTS": 
+        const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
+        watcher.start();
+        break;
+    case "LATEST":
+        console.log('getting latest')
+        const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl)
+        latestWatcher.start();
+        break;
+        // const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
+        // watcher.start();
+
 }

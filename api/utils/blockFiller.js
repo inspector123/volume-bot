@@ -121,6 +121,7 @@ export class BlockFiller {
             console.log('current block count: ', _data[0].count);
             console.log('blocks sent: ', _data[0].count-data[0].count);
             console.log('blocks/s: ', (_data[0].count-data[0].count)/totalTime);
+            this.swapParser.reset();
             return;
         } catch(e) {
             console.error(e)
