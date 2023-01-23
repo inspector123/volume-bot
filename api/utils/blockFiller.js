@@ -106,6 +106,7 @@ export class BlockFiller {
             }
             totalTime = Date.now()-time1;
             console.log('time to post all pairs: ', totalTime/1000)
+            console.log('part 3: sending blocks to api. ')
             time1 = Date.now();
             try {
                 await api.post('/api/blocks', this.swapParser.allSwapsData)

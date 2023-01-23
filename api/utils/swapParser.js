@@ -442,7 +442,7 @@ class SwapParser {
                     decimals: await _token.decimals(),
                     symbol: ethers.utils.parseBytes32String(await _token.symbol())
                 };
-                
+                return details;
             default:
                 let _token2 = new ethers.Contract(token, basicTokenABI, this.httpProvider)
                 return {

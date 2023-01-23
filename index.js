@@ -43,29 +43,14 @@ const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 // const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
 // watcher.start();
 const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
-await blockFiller.fillBlocksFromBehind(1000);
+const totalFills = 100;
+for (let i = 0; i<totalFills; i++) {
+    console.log(`
+--------------------------------------------------------------------------
+STARTING BLOCK FILL ${i+1} OF ${totalFills}
+    
+--------------------------------------------------------------------------
+
+    `);
+    await blockFiller.fillBlocksFromBehind(1000);
+}
