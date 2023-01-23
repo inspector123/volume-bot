@@ -70,7 +70,17 @@ class SwapParser {
     }
 
     getPair(pairAddress) {
-        return this.allPairsData.filter(p=>p.pairAddress == pairAddress);
+        const alreadyFound = this.alreadyFoundPairs.filter(p=>p.address==pairAddress);
+        if (alreadyFound.length) {
+            return alreadyFound;
+        } else {
+            const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
+            if (findPair.length) {
+                alreadyFound = [...alreadyFound, findPair[0]];
+            }
+            return findPair
+        }
+
     }
 
     addToSwaps(swap) {
