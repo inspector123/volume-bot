@@ -100,9 +100,9 @@ class SwapParser {
 
     addToPairs(pairBody) {
         this.newPairsData = [...this.newPairsData, pairBody];
+        console.log(this.newPairsData, 'this.newpairsdata')
         this.allPairsData = [...this.allPairsData, pairBody];
     }
-
     async handlev2Log(log) {
         try {
         
@@ -126,6 +126,7 @@ class SwapParser {
                     token0Symbol, token1Symbol, 
                     token0TotalSupply, token1TotalSupply } = pair[0] );
             } else {
+                console.log('did not find pair', 'pair length is ',pair.length)
                 token0 = await _v2Pair.token0();
                 token1 = await _v2Pair.token1();
 
@@ -313,6 +314,7 @@ class SwapParser {
                 try {
                     ({decimals: token0Decimals, symbol: token0Symbol, totalSupply: token0TotalSupply } = await this.getTokenDetails(token0));
                     ({decimals: token1Decimals, symbol: token1Symbol, totalSupply: token1TotalSupply } = await this.getTokenDetails(token1));
+                    
                 } catch(e) {
                     // console.log(e, parsedLog, poolToken, desiredToken)
                     console.log('error getting token details', e)

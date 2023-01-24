@@ -120,6 +120,10 @@ export class BlockFiller {
                     console.log(e.response.data)
                 }
             }
+
+            if (this.swapParser.allSwapsData.length && !this.swapParser.newPairsData.length) {
+                console.log(this.swapParser.allSwapsData, this.swapParser.newPairsData)
+            }
             totalTime = (Date.now()-time1)/1000;
             console.log('time to post all blocks: ', totalTime)
             console.log('DONE.')
