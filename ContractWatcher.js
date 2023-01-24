@@ -46,8 +46,16 @@ class ContractWatcher {
 
     start() {
         this.setUpVolumeBot();
-        this.node();
+        //this.node();
+        this.test();
     }
+
+    async test() {
+        const logs = await this.archiveProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock: 16000000})
+        console.log(logs)
+    }
+
+
     async node() {
         this.httpProvider.on('block', (latestBlockNumber)=>{
             this.latestBlockNumber = latestBlockNumber;

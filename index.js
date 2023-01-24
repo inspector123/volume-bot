@@ -45,7 +45,7 @@ const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 switch(process.env.PROGRAM) {
     case "GETOLDBLOCKS":
         const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-        const totalFills = 100;
+        const totalFills = 1;
         for (let i = 0; i<totalFills; i++) {
             console.log(`
         --------------------------------------------------------------------------
@@ -56,6 +56,7 @@ switch(process.env.PROGRAM) {
             `);
             await blockFiller.fillBlocksFromBehind(1000);
         }
+        console.log('COMPLETED.')
         process.exit();
     case "FILLIN": 
         if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
@@ -65,6 +66,7 @@ switch(process.env.PROGRAM) {
         console.log('Completed.')
         process.exit();
     case "CONTRACTS": 
+        console.log('running contracts bot')
         const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
         watcher.start();
         break;
@@ -73,6 +75,8 @@ switch(process.env.PROGRAM) {
         const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl)
         latestWatcher.start();
         break;
+    case "TEST":
+        break;
     default: 
-        throw new Error(`did not include program="FILLBLOCKS", program="FILLIN", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)
+        throw new Error(`did not include program="GETOLDBLOCKS", program="FILLIN", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)
 }

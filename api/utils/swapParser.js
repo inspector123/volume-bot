@@ -80,15 +80,12 @@ class SwapParser {
     getPair(pairAddress) {
         const alreadyFoundPair = this.alreadyFoundPairs.filter(p=>p.pairAddress==pairAddress);
         if (alreadyFoundPair.length) {
-            console.log('alreadyFoundPair', alreadyFoundPair.length)
             return alreadyFoundPair;
         } else {
             const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
             if (findPair.length) {
                 this.alreadyFoundPairs = [...this.alreadyFoundPairs, findPair[0]];
             }
-            console.log(findPair.length, 'findPair')
-            if (!findPair.length) console.log('did not find pair')
             return findPair
         }
 
@@ -100,7 +97,6 @@ class SwapParser {
 
     addToPairs(pairBody) {
         this.newPairsData = [...this.newPairsData, pairBody];
-        console.log(this.newPairsData, 'this.newpairsdata')
         this.allPairsData = [...this.allPairsData, pairBody];
     }
     async handlev2Log(log) {
@@ -126,7 +122,6 @@ class SwapParser {
                     token0Symbol, token1Symbol, 
                     token0TotalSupply, token1TotalSupply } = pair[0] );
             } else {
-                console.log('did not find pair', 'pair length is ',pair.length)
                 token0 = await _v2Pair.token0();
                 token1 = await _v2Pair.token1();
 

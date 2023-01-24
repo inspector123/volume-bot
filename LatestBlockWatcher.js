@@ -39,26 +39,10 @@ export class LatestBlockWatcher {
         this.archiveProvider.on('block', async (block)=>{
             console.log('latest block: ', block)
 
-            // if (this.currentBlockSwaps.length) {
-            //     this.previousBlockSwaps = this.currentBlockSwaps;
-            //     this.currentBlockSwaps = [];
-            //     //console.log(this.previousBlockSwaps)
-
-            //     await this.send();
-
-                
-
-            // }
-
             await this.blockFiller.runSwapParseSqlRoutine(block,block);
 
 
         })
-
-        // this.archiveProvider.on({topics: [[v3topic, v2topic]]}, async (log)=> {
-        //     const response = await this.swapParser.grabSwap(log);
-        //     this.currentBlockSwaps = [...this.currentBlockSwaps, response]
-        // })
 
     }
 }
