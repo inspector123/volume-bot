@@ -16,7 +16,7 @@ const v2_pairCreatedTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Pai
 const ownershipTransferredTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("OwnershipTransferred(address,address)"))
 const unicryptTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("onDeposit(address,address,uint256uint256uint256)"))
 const teamFinanceTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Deposit (uint256,address,address,uint256,uint256)"))
-const deadAddressTopicAddress = "0x0000000000000000000000000000000000000000"
+const deadAddressTopicAddress = "0x0000000000000000000000000000000000000000000000000000000000000000"
 const saitaFactory = "0x35113a300ca0D7621374890ABFEAC30E88f214b1"
 const sushiv1_pairCreatedTopic = v2_pairCreatedTopic
 class ContractWatcher {
@@ -39,7 +39,6 @@ class ContractWatcher {
         this.volumeBot = new Telegraf(volumeBotKey);
         this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
         this.httpProvider = this.archiveProvider;
-        this.batchProvider = new ethers.providers.JsonRpcBatchProvider(archiveNodeUrl);
         this.archiveNodeUrl = archiveNodeUrl;
         this.swapParser = new SwapParser(archiveNodeUrl);
     }
@@ -51,7 +50,8 @@ class ContractWatcher {
     }
 
     async test() {
-        const logs = await this.archiveProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock: 16000000})
+        const logs = (await this.archiveProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock: 16400000}))
+        .filter(l=>l.topics[2] == deadAddressTopicAddress)
         console.log(logs)
     }
 
