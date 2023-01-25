@@ -39,7 +39,7 @@ export class LatestBlockWatcher {
         this.archiveProvider.on('block', async (block)=>{
             console.log('latest block: ', block)
 
-            await this.blockFiller.runSwapParseSqlRoutine(block,block);
+            await this.blockFiller.runSwapParseSqlRoutine(block,block,false);
 
 
         })
