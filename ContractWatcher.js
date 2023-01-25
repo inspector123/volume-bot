@@ -4,6 +4,9 @@ import { Telegraf } from 'telegraf';
 import { ethers, utils } from "ethers"
 import SwapParser from './api/utils/swapParser.js'
 import fetch from 'node-fetch';
+import Constants from "./api/utils/constants.js";
+import cliProgress from 'cli-progress'
+import * as fs from 'fs'
 
 const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,address,int256,int256,uint160,uint128,int24)"));
 const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,event PairCreatedaddress)"));
@@ -19,6 +22,7 @@ const teamFinanceTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Deposi
 const deadAddressTopicAddress = "0x0000000000000000000000000000000000000000000000000000000000000000"
 const saitaFactory = "0x35113a300ca0D7621374890ABFEAC30E88f214b1"
 const sushiv1_pairCreatedTopic = v2_pairCreatedTopic
+const UniV2BurnTopic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Burn(address,uint256,uint256,address)"))
 class ContractWatcher {
 
     currentBlock;
@@ -50,9 +54,85 @@ class ContractWatcher {
     }
 
     async test() {
-        const logs = (await this.archiveProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock: 16400000}))
-        .filter(l=>l.topics[2] == deadAddressTopicAddress)
-        console.log(logs)
+        // const logs = (await this.archiveProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock: 16450000}))
+        // .filter(l=>l.topics[2] == deadAddressTopicAddress)
+        // console.log(logs)
+        const minBlock = 16376902;
+        const response = await api.get(`/api/pairs`);
+        const pairs = response.data.data.map(p=>{
+            let token; let symbol;
+                if (!Constants.StablesOrEth.includes(p.token0)) {
+                    token = p.token0;
+                    symbol = p.token0Symbol;
+                } else {
+                    token = p.token1;
+                    symbol = p.token1Symbol;
+                }
+            return {address: p.pairAddress, token, symbol}
+        });
+        const symbols = [...new Set(pairs.map(p=>p.symbol))];
+        console.log('symbols', symbols)
+        //how to improve...
+        //1. pairs with a unique token.
+        //2. ...
+        let logsArray = []
+        //let logsArrayNew = logsArray.map()
+        const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+
+        bar1.start(pairs.length, 0);
+
+        for (let i = 0; i<pairs.length; i++) {
+            const {address} = pairs[i]
+            const logs = await this.archiveProvider.getLogs({address, topics: [[UniV2BurnTopic]], fromBlock: 16426902})
+            
+            if (logs.length) {
+                let logObject = logs.map(l=>{
+                    return {
+                        token: pairs[i].token,
+                        symbol: pairs[i].symbol,
+                        ...l
+                    }
+                })
+                logsArray = [...logsArray, logObject];
+            }
+            bar1.increment();
+        }
+        logsArray = logsArray.flat();
+        console.log(logsArray.length)
+
+        const symbolsWithBurns = symbols.map(s=>{
+            const burns = logsArray.filter(l=>l.symbol == s);
+            return {s, burns}
+        })
+
+        console.log(symbolsWithBurns.filter(s=>s.burns.length).sort((a,b)=>a.burns.length > b.burns.length));
+        fs.writeFile("burns.txt", symbolsWithBurns, (err) => {
+            if (err)
+                    console.log(err);
+            else {
+                    console.log("File written successfully\n");
+                    console.log("The written has the following contents:");
+                    console.log(fs.readFileSync("burns.txt", "utf8"));
+            }
+            });
+
+        bar1.stop();
+
+
+        // allContracts = _allPairs.map(p=>{
+        //     let token;
+        //     if (Constants.StablesOrEth.includes(p.token0)) {
+        //         token = p.token0;
+        //     } else {
+        //         token = p.token1;
+        //     }
+        //     return token;
+        // })
+        // for (let i in allContracts) {
+        //     console.log(i);
+        //     const logs = await this.archiveProvider.getLogs({})
+        // }
+
     }
 
 

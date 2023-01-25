@@ -31,6 +31,8 @@ class SwapParser {
     newPairsData = [];
     allSwapsData = [];
     alreadyFoundPairs = [];
+    pairsAsNumberSorted = [];
+
 
 
     constructor(httpProviderUrl) {
@@ -65,8 +67,9 @@ class SwapParser {
         try {
             const response = await api.get(`/api/pairs`)
             this.allPairsData = response.data.data;
-        } catch {
-            console.log('error getting pair')
+            this.convertPairs(this.allPairsData);
+        } catch(e) {
+            console.log('error getting pairs', e)
         }
     }
 
@@ -90,6 +93,46 @@ class SwapParser {
         }
 
     }
+
+    convertPairs() {
+        const pairsAsNumber = this.allPairsData.map((p,i)=>{
+            return {
+                bigIntValue: ethers.BigNumber.from(p.pairAddress).toBigInt(),
+                ...p
+            }
+        })
+        this.pairsAsNumberSorted = pairsAsNumber.sort((a, b) => (a.bigIntValue < b.bigIntValue) ? -1 : ((a.bigIntValue > b.bigIntValue) ? 1 : 0));
+
+    }
+
+    findPairUsingBinarySearch(pairAddress) {
+        const pairAsBigInt = ethers.BigNumber.from(pairAddress).toBigInt();
+        const sortedIndex = this.binarySearch(pairAsBigInt, this.pairsAsNumberSorted);
+        if (sortedIndex > 0) return [this.pairsAsNumberSorted[sortedIndex]];
+        else return []
+    }
+
+    binarySearch(value, list) {
+        let low = 0;    //left endpoint
+        let high = list.length - 1;   //right endpoint
+        let position = -1;
+        let found = false;
+        let mid;
+        while (found === false && low <= high) {
+            mid = Math.floor((low + high)/2);
+    
+            if (list[mid].bigIntValue == value) {
+                found = true;
+                position = mid;
+            } else if (list[mid].bigIntValue > value) {  //if in lower half
+                high = mid - 1;
+            } else {  //in in upper half
+                low = mid + 1;
+            }
+        }
+        return position;
+    }
+    
 
     addToSwaps(swap) {
         this.allSwapsData = [...this.allSwapsData, swap]

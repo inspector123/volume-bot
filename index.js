@@ -44,8 +44,8 @@ const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
 switch(process.env.PROGRAM) {
     case "GETOLDBLOCKS":
+        const totalFills = process.env.TOTALFILLS || 1000;
         const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-        const totalFills = 1;
         for (let i = 0; i<totalFills; i++) {
             console.log(`
         --------------------------------------------------------------------------
