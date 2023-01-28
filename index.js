@@ -76,7 +76,13 @@ switch(process.env.PROGRAM) {
         latestWatcher.start();
         break;
     case "TEST":
+        const __blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+        await __blockFiller.fillUpToHighestBlock();
+        console.log('Completed.')
+        process.exit();
         break;
+    case "FINDBLOCKBYDATE":
+
     default: 
         throw new Error(`did not include program="GETOLDBLOCKS", program="FILLIN", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)
 }

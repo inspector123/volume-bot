@@ -495,22 +495,13 @@ class SwapParser {
                 };
                 return details;
             default:
-                try {
-                    let _token2 = new ethers.Contract(token, basicTokenABI, this.httpProvider)
-                    
-                    return {
-                        totalSupply: (await _token2.totalSupply()).toString(),
-                        decimals: await _token2.decimals(),
-                        symbol: await _token2.symbol()
-                    };
-                } catch(e) {
-                    let _token3 = new ethers.Contract(token, veryBankingBytes32ABI, this.httpProvider)
-                    return {
-                        totalSupply: (await _token3.totalSupply()).toString(),
-                        decimals: await _token3.decimals(),
-                        symbol: ethers.utils.parseBytes32String(await _token3.symbol())
-                    };
-                }
+                let _token2 = new ethers.Contract(token, basicTokenABI, this.httpProvider)
+                
+                return {
+                    totalSupply: (await _token2.totalSupply()).toString(),
+                    decimals: await _token2.decimals(),
+                    symbol: await _token2.symbol()
+                };
         }
 
 

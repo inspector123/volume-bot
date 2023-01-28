@@ -47,7 +47,7 @@ const ShibaSwap = "0x03f7724180aa6b939894b5ca4314783b0b36b329"
 const coinbasewalletProxy0x = "0xe66b31678d6c16e9ebf358268a790b763c133750"
 const _0xExchangeProxy = "0xdef1c0ded9bec7f1a1670819833240f027b25eff"
 const paraswapAugustus = "0xdef171fe48cf0115b1d80b88dc8eab59176fee57"
-const acceptedRouters = [UniswapV2, UniswapV3Router2,OneInchV4Router,OneInchv5Router,KyberSwap, SushiSwapRouter,RainbowRouter, coinbasewalletProxy0x, _0xExchangeProxy, paraswapAugustus]
+const acceptedRouters = [UniswapV2, UniswapV3Router2,OneInchV4Router,OneInchv5Router,KyberSwap, SushiSwapRouter,RainbowRouter, coinbasewalletProxy0x, _0xExchangeProxy, paraswapAugustus, UniswapUniversalRouter]
 
 const bigcapbot1="0xb7fd3575c614d8f2ffd50ce48c199b0aafa2c0bc"
 const bigcapbot2="0x63af5004090c15a2df73e9b2a4064801ce70da30"
