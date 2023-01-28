@@ -1,14 +1,14 @@
 import express from 'express'
-import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, createPair, getPairByPairAddress, getAllPairs } from '../controllers/queries.js';
+import { getAllSwaps, getBlock,createContractOrGetMatchingContracts, createSwap,deleteContract, updateContract, createPair, getPairByPairAddress, getAllPairs } from '../controllers/queries.js';
 const router = express.Router();
 //
 
 
-//blocks table
-router.route("/api/blocks").get(getAllBlocks)
-    .post(createBlock);
+//swaps table
+router.route("/api/swaps").get(getAllSwaps)
+    .post(createSwap);
 
-router.route("/api/blocks/:blockNumber")
+router.route("/api/swaps/:blockNumber")
 .get(getBlock)
 // //contracts table
 // router.route("/api/contracts")

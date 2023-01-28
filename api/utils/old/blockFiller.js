@@ -16,8 +16,6 @@ import univ3v2ABI from '../abi/univ3v2abi.json' assert { type: "json" };
 import tokenABI from '../abi/tokenABI.json' assert { type: "json" };
 import univ2PairABI from '../abi/univ2PairABI.json' assert { type: "json" };
 import univ3PoolABI from '../abi/uniV3PoolABI.json' assert { type: "json" };
-import univ2FactoryABI from '../abi/UniV2FactoryABI.json' assert { type: "json" };
-import univ3FactoryABI from '../abi/UniV3FactoryABI.json' assert { type: "json" };
 import KyberswapABI from '../abi/KyberswapABI.json' assert { type: "json" };
 import basicTokenABI from '../abi/basicTokenABI.json' assert { type: "json" };
 import swapParser from './swapParser.js'
@@ -25,7 +23,7 @@ import Constants from "./constants.js"
 import cliProgress from 'cli-progress'
 import SwapParser from '../utils/swapParser.js';
 
-const { uniV3Factory, univ2Factory, daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
+const { daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
     mevBot1, mevBot2, busdETH, USDCUSDT, v2USDTDAI, sushiswapUSDTv2, v3DAI_2, v2USDC, 
     pancakeUSDC, pancakeUSDT, v2USDT, v3_DaiUSDCv4, v3USDC, v3Usdt, v3DaiUsdt,
     KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT, wstETH,
@@ -53,112 +51,26 @@ export class BlockFiller {
         console.log(`latest archive block: ${blockNumber}`)
     }
 
-    async getLiqAddLog(contract, _fromBlock) {
-        let fromBlock = _fromBlock;
-        if (!_fromBlock) fromBlock = 10000000;
-        const contractTopic = contract.toLowerCase().replace("0x", Constants.addZeros)
-        try {
-
-            let univ2Pos1 = await this.archiveProvider.getLogs({address: Constants.univ2Factory, topics: [[Constants.topics.UniV2PairCreatedTopic], [contractTopic]], fromBlock})
-            let univ2Pos2 = await this.archiveProvider.getLogs({address: Constants.univ2Factory, topics: [[Constants.topics.UniV2PairCreatedTopic], null, [contractTopic]], fromBlock})
-            let univ3Pos1 = await this.archiveProvider.getLogs({address: Constants.univ3Factory, topics: [[Constants.topics.UniV3PoolCreatedTopic], [contractTopic]], fromBlock})
-            let univ3Pos2 = await this.archiveProvider.getLogs({address: Constants.univ3Factory, topics: [[Constants.topics.UniV3PoolCreatedTopic], null, [contractTopic]], fromBlock})
-            const v3v2Events = [ univ2Pos1, univ2Pos2, univ3Pos1, univ3Pos2 ].flat()
-            if (!v3v2Events.length) {
-                let sushiPos1 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock});
-                let sushiPos2 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic],null, [contractTopic]], fromBlock});
-                const log =  [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
-                return timestamp
-
-            } else {
-                const log =  v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
-                return log
-            }
-        } catch(e) {
-            console.log('error getting add block', e, contract)
-            return 1000000;
-        }
+    async fillBlocksFromBehind(blocks) {
+        // step 1: get first blockNumber in your database.
+        const response = await api.get(`/api/blocks/1?min=true`);
+        const { minBlockNumber } = response.data.data[0];
+        console.log('starting block: ', minBlockNumber)
+        await this.runSwapParseSqlRoutine(minBlockNumber-blocks, minBlockNumber-1, true)
+        
     }
 
-    async getAllSwapsFromContract(contract) {
-        //for now will have to specify if it's univ2 or univ3...
-        // const pairAddress = new ethers.Contract(contract, )
-        // const response = await this.archiveProvider.getLogs({})
-        //step 1: try BCB contract
-        let pairAddress, router, liqAddBlockNumber, allSwaps;
+    async fillBetween(block1,block2) {
+        console.log('starting block: ', block1, 'ending block: ', block2)
+        await this.runSwapParseSqlRoutine(block1, block2)
+    }
 
-        //step 1 : get the liquidity add event and then the pool.
-        try {
-            //get liq add event
-            const log = await this.getLiqAddLog(contract, 14000000);
-            console.log(log)
-            if (!log) throw new Error('no log found');
-            liqAddBlockNumber = log.blockNumber;
-            if (log.address == Constants.univ2Factory) {
-                const _interface = new ethers.utils.Interface(univ2FactoryABI);
-                const parsedLog = _interface.parseLog(log);
-                pair = parsedLog.args.pair;
-                this.swapParser.setPairAddress(pairAddress);
-                router = "v2"
-
-            } else if (log.address == Constants.univ3Factory) {
-                const _interface = new ethers.utils.Interface(univ3FactoryABI);
-                const parsedLog = _interface.parseLog(log);
-                pairAddress = parsedLog.args.pool;
-                this.swapParser.setPairAddress(pairAddress);
-                router = "v3"
-            }
-            const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-
-            
-
-            if (router == "v2") {
-                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v2topic]], fromBlock:liqAddBlockNumber })
-                bar1.start(allSwaps.length, 0);
-                for (let i in allSwaps) {
-                    await this.swapParser.grabSwap(allSwaps[i])
-                    bar1.increment();
-                }
-            } else if (router == "v3") {
-                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v3topic]], fromBlock:liqAddBlockNumber })
-                bar1.start(allSwaps.length, 0);
-                for (let i in allSwaps) {
-                    await this.swapParser.grabSwap(allSwaps[i])
-                    bar1.increment();
-                }
-            }
-            console.log(this.swapParser.newPairsData, 'pair length to post')
-
-            if (this.swapParser.newPairsData.length) {
-                try {
-                    await api.post('/api/pairs', this.swapParser.newPairsData)
-                }catch(e) {
-                    console.log(e.response.data)
-                }
-            }
-            console.log('sending swaps to db.')
-            if (this.swapParser.allSwapsData.length) {
-                try {
-                    await api.post('/api/swaps', this.swapParser.allSwapsData)
-                }catch(e) {
-                    console.log(e.response.data)
-                }
-            }
-
-
-
-
-
-
-
-        } catch(e) {
-            console.log('error', e)
-        }
-
-        //step 2: 
-
-        
-
+    async fillUpToHighestBlock() {
+        const response = await api.get(`/api/blocks/1?max=true`);
+        const { maxBlockNumber } = response.data.data[0];
+        const blockNumber = await this.archiveProvider.getBlockNumber();
+        console.log('starting block: ', maxBlockNumber, 'ending block:', blockNumber)
+        await this.runSwapParseSqlRoutine(maxBlockNumber+1, blockNumber)
     }
 
     async runSwapParseSqlRoutine(fromBlock, toBlock, stats=true) {

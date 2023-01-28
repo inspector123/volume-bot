@@ -2,8 +2,8 @@ import AppError from '../utils/AppError.js';
 import conn from '../services/db.js';
 
 //BLOCKS
-export const getAllBlocks = (req, res, next) => {
-  conn.query("SELECT * FROM BlockEvents", function (err, data, fields) {
+export const getAllSwaps = (req, res, next) => {
+  conn.query("SELECT * FROM ContractSwaps", function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
       status: "success",
@@ -12,7 +12,7 @@ export const getAllBlocks = (req, res, next) => {
     });
   });
 };
-export const createBlock = async (req, res, next) => {
+export const createSwap = async (req, res, next) => {
   if (!req.body) return next(new AppError("No form data found", 404));
   let { body } = req;
 
@@ -24,7 +24,7 @@ export const createBlock = async (req, res, next) => {
 
 
   const result = conn.query(
-    "INSERT INTO BlockEvents (blockNumber,symbol,contract,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
+    "INSERT INTO ContractSwaps (blockNumber,symbol,contract,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -48,7 +48,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.min) {  
     conn.query(
-      "SELECT min(blockNumber) as minBlockNumber from BlockEvents",
+      "SELECT min(blockNumber) as minBlockNumber from ContractSwaps",
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -60,7 +60,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.sortBySymbol) {
     conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM ContractSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -73,7 +73,7 @@ export const getBlock = (req, res, next) => {
     );
   } if(req.query.max) {
     conn.query(
-      "SELECT max(blockNumber) as maxBlockNumber from BlockEvents",
+      "SELECT max(blockNumber) as maxBlockNumber from ContractSwaps",
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -84,7 +84,7 @@ export const getBlock = (req, res, next) => {
     });
   } if (req.query.count) {
     conn.query(
-      "SELECT count(id) as count from BlockEvents",
+      "SELECT count(id) as count from ContractSwaps",
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -289,7 +289,7 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   
   */
  /*
-  CREATE TABLE BlockEvents(id int NOT NULL AUTO_INCREMENT,
+  CREATE TABLE ContractSwaps(id int NOT NULL AUTO_INCREMENT,
   blockNumber double,
   symbol varchar(50),
   contract varchar(50),

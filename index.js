@@ -40,48 +40,51 @@ const wssPort = "9536"
 
 //const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
+const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+const latestBlockWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl);
+
 
 
 switch(process.env.PROGRAM) {
-    case "GETOLDBLOCKS":
-        const totalFills = process.env.TOTALFILLS || 1000;
-        const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-        for (let i = 0; i<totalFills; i++) {
-            console.log(`
-        --------------------------------------------------------------------------
-        STARTING BLOCK FILL ${i+1} OF ${totalFills}
+    //"0x2d886570A0dA04885bfD6eb48eD8b8ff01A0eb7e" == BCB
+    // case "GETOLDBLOCKS":
+    //     const totalFills = process.env.TOTALFILLS || 1000;
+    //     const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+    //     for (let i = 0; i<totalFills; i++) {
+    //         console.log(`
+    //     --------------------------------------------------------------------------
+    //     STARTING BLOCK FILL ${i+1} OF ${totalFills}
             
-        --------------------------------------------------------------------------
+    //     --------------------------------------------------------------------------
         
-            `);
-            await blockFiller.fillBlocksFromBehind(1000);
-        }
-        console.log('COMPLETED.')
-        process.exit();
-    case "FILLIN": 
-        if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
-        const _blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-        console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
-        await _blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
-        console.log('Completed.')
-        process.exit();
-    case "CONTRACTS": 
-        console.log('running contracts bot')
-        const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
-        watcher.start();
-        break;
-    case "LATEST":
-        console.log('getting latest')
-        const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl)
-        latestWatcher.start();
-        break;
+    //         `);
+    //         await blockFiller.fillBlocksFromBehind(1000);
+    //     }
+    //     console.log('COMPLETED.')
+    //     process.exit();
+    // case "FILLIN": 
+    //     if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
+    //     const _blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+    //     console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
+    //     await _blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
+    //     console.log('Completed.')
+    //     process.exit();
+    // case "CONTRACTS": 
+    //     console.log('running contracts bot')
+    //     const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
+    //     watcher.start();
+    //     break;
+    // case "LATEST":
+    //     console.log('getting latest')
+    //     const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl)
+    //     latestWatcher.start();
+    //     break;
     case "TEST":
-        const __blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
-        await __blockFiller.fillUpToHighestBlock();
+        await blockFiller.getAllSwapsFromContract("0xCFe4EB08e33272d98cb31e37A7BE78d5C1b740c1");
         console.log('Completed.')
         process.exit();
         break;
-    case "FINDBLOCKBYDATE":
+    // case "FINDBLOCKBYDATE":
 
     default: 
         throw new Error(`did not include program="GETOLDBLOCKS", program="FILLIN", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)

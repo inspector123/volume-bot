@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { toKeccak } from './functions.js';
 const apiKey = `3UNWDPMM65ARUPABPKM9MQXEAM3MYAATN6`;
 
 //contracts for log.address filters
@@ -91,7 +92,28 @@ const v3topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,ad
 const v2topic = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Swap(address,uint256,uint256,uint256,uint256,address)"))
 const wstETH = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
 
-const Constants = { daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
+const univ3Factory = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+
+
+//TOPICS
+
+const UniV3PoolCreatedTopic = toKeccak("PoolCreated(address,address,uint24,int24,address)")
+const UniV2PairCreatedTopic = toKeccak("PairCreated(address,address,address,uint256)")
+const univ2Factory = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+const topics = [UniV3PoolCreatedTopic, UniV2PairCreatedTopic, v3topic, v2topic ]
+
+
+const addZeros = "0x000000000000000000000000"
+
+
+
+
+
+
+
+
+const Constants = { addZeros, univ3Factory, univ2Factory, topics, daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
     mevBot1, mevBot2, busdETH, USDCUSDT, v2USDTDAI, sushiswapUSDTv2, v3DAI_2, v2USDC, 
     pancakeUSDC, pancakeUSDT, v2USDT, v3_DaiUSDCv4, v3USDC, v3Usdt, v3DaiUsdt,
     KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT,
