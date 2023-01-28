@@ -1,6 +1,5 @@
 import express from 'express'
-import { getBlock, getAllBlocks, createBlock, deleteBlock } from '../controllers/block.js';
-import { getAllContracts, createContracts, deleteContract, updateContract } from '../controllers/contract.js';
+import { getAllBlocks, getBlock,createContractOrGetMatchingContracts, createBlock,deleteContract, updateContract, createPair, getPairByPairAddress, getAllPairs } from '../controllers/queries.js';
 const router = express.Router();
 //
 
@@ -10,15 +9,24 @@ router.route("/api/blocks").get(getAllBlocks)
     .post(createBlock);
 
 router.route("/api/blocks/:blockNumber")
-    .get(getBlock)
-    .delete(deleteBlock)
+.get(getBlock)
+// //contracts table
+// router.route("/api/contracts")
+//     .put(updateContract)
 
 //contracts table
-router.route("/api/contracts")
-    .get(getAllContracts)
-    .post(createContracts);
+router.route("/api/contracts").post(createContractOrGetMatchingContracts); //have ?matching to figure out if it's gonna be the one post or the other
 
-router.route("/api/contracts/:id")
+router.route("/api/contracts") //?volume5m=...
     .put(updateContract)
-    .delete(deleteContract);
+
+
+//PAIRS
+
+router.route("/api/pairs")
+    .get(getAllPairs)
+    .post(createPair);
+
+router.route("/api/pairs/:pairAddress")
+    .get(getPairByPairAddress)
 export default router;

@@ -1,44 +1,88 @@
 
 import * as dotenv from 'dotenv'
-dotenv.config();
-import { Watcher } from './bots/watcher_ethers.js'
-import wallets from "./bots/wallets.js"
+import ContractWatcher from './ContractWatcher.js'
 import express from "express"
 import cors from "cors"
-import router from './routes/index.js'
-import AppError from "./utils/AppError.js";
-import errorHandler from "./utils/errorHandler.js";
+import router from './api/routes/index.js'
+import AppError from "./api/utils/AppError.js";
+import errorHandler from "./api/utils/errorHandler.js";
 import bodyParser from 'body-parser'
-const { ALERT_BOT_KEY, 
+import { BlockFiller } from './api/utils/blockFiller.js'
+import { LatestBlockWatcher } from './LatestBlockWatcher.js'
+
+dotenv.config();
+const {
     CHAT_ID_CHANNEL,
     CHAT_ID_CHANNEL_BETA, 
     CHAT_ID_DISCUSSION, 
-    VOLUME_BOT_KEY
+    VOLUME_BOT_KEY,
+    CHAT_ID_BETA_TEST,
+    PORT
  } = process.env;
 const app = express();
-
-app.use(bodyParser.json())
+app.use(bodyParser.json({limit:'500mb'}))
 app.use(router);
 
 app.use(cors());
 
 app.all("*", (req, res, next) => {
- next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
+ next(new AppError(`The URL ${req.originalUrl} does not exist`, 404));
 });
 app.use(errorHandler);
-const PORT = 3000;
-app.listen(PORT, () => {
+app.listen(process.env.PORT, () => {
  console.log(`server running on port ${PORT}`);
 });
 
-
-const testnetStatus = false
-const localNodeIp = "192.168.0.228"
-const httpPort = "9535"
+//const fullNodeIp = "192.168.0.228"
+const archiveNodeIp = "127.0.0.1"
+const httpPort = "8545"
 const wssPort = "9536"
 
-const httpUrl = `http://${localNodeIp}:${httpPort}`
-const wsUrl = `ws://${localNodeIp}:${wssPort}`
+//const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
+const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
-const watcher = new Watcher(CHAT_ID_CHANNEL, wallets, ALERT_BOT_KEY, VOLUME_BOT_KEY, testnetStatus, httpUrl, wsUrl);
-//watcher.runVolumeCheck(1)
+
+switch(process.env.PROGRAM) {
+    case "GETOLDBLOCKS":
+        const totalFills = process.env.TOTALFILLS || 1000;
+        const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+        for (let i = 0; i<totalFills; i++) {
+            console.log(`
+        --------------------------------------------------------------------------
+        STARTING BLOCK FILL ${i+1} OF ${totalFills}
+            
+        --------------------------------------------------------------------------
+        
+            `);
+            await blockFiller.fillBlocksFromBehind(1000);
+        }
+        console.log('COMPLETED.')
+        process.exit();
+    case "FILLIN": 
+        if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
+        const _blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+        console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
+        await _blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
+        console.log('Completed.')
+        process.exit();
+    case "CONTRACTS": 
+        console.log('running contracts bot')
+        const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
+        watcher.start();
+        break;
+    case "LATEST":
+        console.log('getting latest')
+        const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST, archiveNodeUrl)
+        latestWatcher.start();
+        break;
+    case "TEST":
+        const __blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+        await __blockFiller.fillUpToHighestBlock();
+        console.log('Completed.')
+        process.exit();
+        break;
+    case "FINDBLOCKBYDATE":
+
+    default: 
+        throw new Error(`did not include program="GETOLDBLOCKS", program="FILLIN", program="CONTRACTS" or program="LATEST". \n must run like this: program="LATEST" npm run start`)
+}

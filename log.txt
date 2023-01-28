@@ -1,0 +1,31 @@
+
+> volume-bot@1.0.0 start
+> node index.js
+
+running contracts bot
+server running on port 3003
+symbols [
+  'LDO',        'SHIBO',     'SACHIKO',     'SSV',       'PAXG',
+  'NTX',        'REEF',      'vitalik.eth', 'KP3R',      'SOLID',
+  'KATA',       'SUSHI',     'FTR',         'ASHI',      'KNDM',
+  'SHIL',       'ODA',       'SUPER',       'uDOO',      'NEWO',
+  'WAS',        'xSUSHI',    'EZ',          'KISHIMOTO', 'DOGINA',
+  'GTC',        'BINU',      'AURA',        'GST',       'GMT',
+  'WOO',        'LUSD',      'HFT',         'RIO',       'VRA',
+  'GIGA',       'BONE',      'ICSA',        'PLSD',      'CULT',
+  'VC',         'FET',       'FXS',         'SYN',       'rETH',
+  'ATH',        'RBN',       'CRPT',        'PROXY',     'VB',
+  'RNDR',       'FTM',       'XOR',         'GALA',      'FOX',
+  'ONIGI',      'SHI',       'ILV',         'VITA',      'DATA',
+  'Shibawards', 'UMA',       'SRLTY',       'Carpet',    'KLEE',
+  'KAGI',       'LRC',       'NFAi',        'wNXM',      'HEX',
+  'MATIC',      'NFTD',      'MC',          'FREN',      'UOS',
+  'SWIFY',      'RAD',       'MAGIC',       'X2Y2',      'RABBIT',
+  'VAI',        'TRU',       'UNI',         'SNX',       'ISP',
+  'rHEGIC2',    'PYR',       'UNISTAKE',    '$XINA',     'M87',
+  'GRT',        '$NIKKA',    'DERPY',       'FREE',      'BAG',
+  'DETH',       'ETH2x-FLI', 'NUTRA',       'RAZOR',     'SHIK',
+  ... 7434 more items
+]
+Current Price of Ether: $ 1637
+Current Price of BTC: 23080.490555398927
