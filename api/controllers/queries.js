@@ -24,7 +24,7 @@ export const createSwap = async (req, res, next) => {
 
 
   const result = conn.query(
-    "INSERT INTO ContractSwaps (blockNumber,symbol,contract,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
+    "INSERT INTO ContractSwaps (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -43,7 +43,7 @@ export const createSwap = async (req, res, next) => {
 
 
 export const getBlock = (req, res, next) => {
-  if (!req.params.blockNumber) {
+  if (!req.params.contract) {
       res.status(404).json({status: "failure", data, length: data?.length});
   }
   if (req.query.min) {  
@@ -71,9 +71,22 @@ export const getBlock = (req, res, next) => {
         });
       }
     );
-  } if(req.query.max) {
+  }
+  // } if(req.query.max) {
+  //   conn.query(
+  //     "SELECT max(blockNumber) as maxBlockNumber from ContractSwaps",
+  //     function (err, data, fields) {
+  //       if(err) return next(new AppError(err))
+  //       res.status(200).json({
+  //         status: "success",
+  //         length: data?.length,
+  //         data: data,
+  //       });
+  //   });
+  // }
+  if (req.query.count) {
     conn.query(
-      "SELECT max(blockNumber) as maxBlockNumber from ContractSwaps",
+      "SELECT count(id) as count from ContractSwaps",
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -82,9 +95,10 @@ export const getBlock = (req, res, next) => {
           data: data,
         });
     });
-  } if (req.query.count) {
+  } 
+  if (req.query.max) {
     conn.query(
-      "SELECT count(id) as count from ContractSwaps",
+      "SELECT contract, max(blockNumber) as latestBlock, max(pairAddress) as pairAddress from ContractSwaps where contract = ?", [req.params.contract],
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({

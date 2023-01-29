@@ -80,7 +80,7 @@ switch(process.env.PROGRAM) {
     //     latestWatcher.start();
     //     break;
     case "TEST":
-        await blockFiller.getAllSwapsFromContract("0xCFe4EB08e33272d98cb31e37A7BE78d5C1b740c1");
+        await blockFiller.getAllSwapsFromContract("0x6f3277ad0782a7DA3eb676b85a8346A100BF9C1c");
         console.log('Completed.')
         process.exit();
         break;

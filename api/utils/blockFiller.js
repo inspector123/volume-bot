@@ -84,43 +84,58 @@ export class BlockFiller {
         //for now will have to specify if it's univ2 or univ3...
         // const pairAddress = new ethers.Contract(contract, )
         // const response = await this.archiveProvider.getLogs({})
-        //step 1: try BCB contract
-        let pairAddress, router, liqAddBlockNumber, allSwaps;
+        //step 0: check if contract already in DB
 
-        //step 1 : get the liquidity add event and then the pool.
         try {
-            //get liq add event
-            const log = await this.getLiqAddLog(contract, 14000000);
-            console.log(log)
-            if (!log) throw new Error('no log found');
-            liqAddBlockNumber = log.blockNumber;
-            if (log.address == Constants.univ2Factory) {
-                const _interface = new ethers.utils.Interface(univ2FactoryABI);
-                const parsedLog = _interface.parseLog(log);
-                pair = parsedLog.args.pair;
-                this.swapParser.setPairAddress(pairAddress);
-                router = "v2"
+            const response = await api.get(`/api/swaps/${contract}?max=true`)
+            let pairAddress, router, liqAddBlockNumber, allSwaps, fromBlock;
+            if (response.data.data[0].latestBlock != null) {
+                fromBlock = response.data.data[0].latestBlock
+                pairAddress = response.data.data[0].pairAddress
 
-            } else if (log.address == Constants.univ3Factory) {
-                const _interface = new ethers.utils.Interface(univ3FactoryABI);
-                const parsedLog = _interface.parseLog(log);
-                pairAddress = parsedLog.args.pool;
-                this.swapParser.setPairAddress(pairAddress);
-                router = "v3"
+            } else {
+                //get liquidity add event
+                const log = await this.getLiqAddLog(contract, 14000000);
+                console.log('pair created at block',log.blockNumber )
+                if (!log) throw new Error('no log found');
+                liqAddBlockNumber = log.blockNumber;
+                fromBlock = liqAddBlockNumber;
+                if (log.address == Constants.univ2Factory) {
+                    const _interface = new ethers.utils.Interface(univ2FactoryABI);
+                    const parsedLog = _interface.parseLog(log);
+                    pairAddress = parsedLog.args.pair;
+                    this.swapParser.setPairAddress(pairAddress);
+                    router = "v2"
+                } else if (log.address == Constants.univ3Factory) {
+                    const _interface = new ethers.utils.Interface(univ3FactoryABI);
+                    const parsedLog = _interface.parseLog(log);
+                    pairAddress = parsedLog.args.pool;
+                    this.swapParser.setPairAddress(pairAddress);
+                    router = "v3"
+                }
             }
+            
             const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
             
-
+            await this.swapParser.getAllPairs();
             if (router == "v2") {
-                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v2topic]], fromBlock:liqAddBlockNumber })
+                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v2topic]], fromBlock })
                 bar1.start(allSwaps.length, 0);
                 for (let i in allSwaps) {
                     await this.swapParser.grabSwap(allSwaps[i])
                     bar1.increment();
                 }
             } else if (router == "v3") {
-                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v3topic]], fromBlock:liqAddBlockNumber })
+                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v3topic]], fromBlock })
+                bar1.start(allSwaps.length, 0);
+                for (let i in allSwaps) {
+                    await this.swapParser.grabSwap(allSwaps[i])
+                    bar1.increment();
+                }
+            } else {
+                allSwaps = await this.archiveProvider.getLogs({address: pairAddress, topics: [[Constants.v3topic, Constants.v2topic]], fromBlock })
+                console.log(allSwaps)
                 bar1.start(allSwaps.length, 0);
                 for (let i in allSwaps) {
                     await this.swapParser.grabSwap(allSwaps[i])
@@ -144,13 +159,6 @@ export class BlockFiller {
                     console.log(e.response.data)
                 }
             }
-
-
-
-
-
-
-
         } catch(e) {
             console.log('error', e)
         }
