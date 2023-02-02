@@ -44,11 +44,11 @@ const KyberSwapInBetweenContract = "0x4Fe5b965E3BD76eFf36280471030ef9b0E6e2C1D"
 const RainbowRouter = "0x00000000009726632680FB29d3F7A9734E3010E2"
 //check for sushiswap / rainbow swap functions
 const OneInchV4Router = "0x1111111254fb6c44bAC0beD2854e76F90643097d"
-const ShibaSwap = "0x03f7724180aa6b939894b5ca4314783b0b36b329"
-const coinbasewalletProxy0x = "0xe66b31678d6c16e9ebf358268a790b763c133750"
-const _0xExchangeProxy = "0xdef1c0ded9bec7f1a1670819833240f027b25eff"
-const paraswapAugustus = "0xdef171fe48cf0115b1d80b88dc8eab59176fee57"
-const acceptedRouters = [UniswapV2, UniswapV3Router2,OneInchV4Router,OneInchv5Router,KyberSwap, SushiSwapRouter,RainbowRouter, coinbasewalletProxy0x, _0xExchangeProxy, paraswapAugustus, UniswapUniversalRouter]
+const ShibaSwap = "0x03f7724180AA6b939894B5Ca4314783B0b36b329"
+const coinbasewalletProxy0x = "0xe66B31678d6C16E9ebf358268a790B763C133750"
+const _0xExchangeProxy = "0xDef1C0ded9bec7F1a1670819833240f027b25EfF"
+const paraswapAugustus = "0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57"
+const acceptedRouters = [UniswapV2, UniswapV3Router2,OneInchV4Router,OneInchv5Router,KyberSwap, SushiSwapRouter,RainbowRouter, coinbasewalletProxy0x, _0xExchangeProxy, paraswapAugustus, UniswapUniversalRouter, ShibaSwap]
 
 const bigcapbot1="0xb7fd3575c614d8f2ffd50ce48c199b0aafa2c0bc"
 const bigcapbot2="0x63af5004090c15a2df73e9b2a4064801ce70da30"

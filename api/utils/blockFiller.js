@@ -161,6 +161,7 @@ export class BlockFiller {
                     console.log(e.response.data)
                 }
             }
+            this.swapParser.reset();
         } catch(e) {
             console.log('error', e)
         }
