@@ -22,9 +22,19 @@ export const createSwap = async (req, res, next) => {
     return Object.values(b)
   })
 
+  //Table Descriptions
+  //ContractSwaps is the one that is focused on Wallets.
+
+  //AllSwaps is the one that posts new swaps every block.
+
+  //EpiWalletSwaps is the one where if an Epi wallet is detected we post to that wallet as well.
+
+  //if those query parameters aren't met exit
+  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps"];
+  if (!Tables.includes(req.query.table))  return next(new AppError("No form data found", 404));
 
   const result = conn.query(
-    "INSERT INTO ContractSwaps (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
+    `INSERT INTO ${req.query.table} (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);`.repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -304,6 +314,34 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   */
  /*
   CREATE TABLE ContractSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+  PRIMARY KEY(id)
+  );
+    CREATE TABLE MainSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+  PRIMARY KEY(id)
+  );
+    CREATE TABLE EpiWalletSwaps(id int NOT NULL AUTO_INCREMENT,
   blockNumber double,
   symbol varchar(50),
   contract varchar(50),
