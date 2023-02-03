@@ -156,7 +156,7 @@ export class BlockFiller {
             console.log('sending swaps to db.')
             if (this.swapParser.allSwapsData.length) {
                 try {
-                    await api.post('/api/swaps', this.swapParser.allSwapsData)
+                    await api.post(`/api/swaps?table=ContractSwaps`, this.swapParser.allSwapsData)
                 }catch(e) {
                     console.log(e.response.data)
                 }
@@ -172,15 +172,10 @@ export class BlockFiller {
 
     }
 
-    async runSwapParseSqlRoutine(fromBlock, toBlock, stats=true) {
+    async runSwapParseSqlRoutine(fromBlock, toBlock) {
         try {
             if (!fromBlock || !toBlock) throw new Error('missing from or to block')
-            let count, _count
-            if (stats) {
-                const { data: {data}} = await api.get('/api/blocks/1?count=true')
-                console.log('current block count: ', data[0].count);
-                console.log('getting all pairs')
-            }
+            if (!table) throw new Error('missing table');
             
 
             await this.swapParser.getAllPairs();
@@ -226,11 +221,11 @@ export class BlockFiller {
             totalTime = (Date.now()-time1)/1000;
             console.log('time to post all blocks: ', totalTime)
             console.log('DONE.')
-            if (stats) {
-                const { data: {data: _data}} = await api.get('/api/blocks/1?count=true');
+            // if (stats) {
+            //     const { data: {data: _data}} = await api.get('/api/blocks/1?count=true');
 
-                console.log('current block count: ', _data[0].count);
-            }
+            //     console.log('current block count: ', _data[0].count);
+            // }
             this.swapParser.reset();
             return;
         } catch(e) {

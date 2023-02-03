@@ -3,7 +3,9 @@ import conn from '../services/db.js';
 
 //BLOCKS
 export const getAllSwaps = (req, res, next) => {
-  conn.query("SELECT * FROM ContractSwaps", function (err, data, fields) {
+  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps"];
+  if (!Tables.includes(req.query.table))  return next(new AppError("No form data found", 404));
+  conn.query(`SELECT * FROM ${req.query.table} group by wallet`, function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
       status: "success",
@@ -31,7 +33,7 @@ export const createSwap = async (req, res, next) => {
 
   //if those query parameters aren't met exit
   const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps"];
-  if (!Tables.includes(req.query.table))  return next(new AppError("No form data found", 404));
+  if (!Tables.includes(req.query.table))  return next(new AppError("No table was provided", 404));
 
   const result = conn.query(
     `INSERT INTO ${req.query.table} (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);`.repeat(_body.length),_body, (err,data)=>{
@@ -325,6 +327,7 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   router varchar(50),
   etherPrice double,
    marketCap double,
+   pairAddress varchar(50),
   PRIMARY KEY(id)
   );
     CREATE TABLE MainSwaps(id int NOT NULL AUTO_INCREMENT,
@@ -339,6 +342,7 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   router varchar(50),
   etherPrice double,
    marketCap double,
+      pairAddress varchar(50),
   PRIMARY KEY(id)
   );
     CREATE TABLE EpiWalletSwaps(id int NOT NULL AUTO_INCREMENT,
@@ -353,6 +357,7 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   router varchar(50),
   etherPrice double,
    marketCap double,
+      pairAddress varchar(50),
   PRIMARY KEY(id)
   );
 
