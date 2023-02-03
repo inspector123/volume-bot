@@ -2,17 +2,66 @@ import AppError from '../utils/AppError.js';
 import conn from '../services/db.js';
 
 //BLOCKS
+//api/swaps?table=EpiWalletsUnfiltered&contract=&wallet=
 export const getAllSwaps = (req, res, next) => {
-  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps"];
+  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps","EpiWalletSwapsUnfiltered"];
   if (!Tables.includes(req.query.table))  return next(new AppError("No form data found", 404));
-  conn.query(`SELECT * FROM ${req.query.table} group by wallet`, function (err, data, fields) {
-    if(err) return next(new AppError(err))
-    res.status(200).json({
-      status: "success",
-      length: data?.length,
-      data: data,
+  if (!req.query.contract && !req.query.wallet) {
+    conn.query(`SELECT * FROM ${req.query.table} group by wallet`, function (err, data, fields) {
+      if(err) return next(new AppError(err))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
     });
-  });
+    return;
+  } 
+  if (req.query.table.includes("EpiWallet")&&req.query.contract&&req.query.wallet) {
+    conn.query(`SELECT wallet, count(distinct txHash) as count FROM ${req.query.table} where contract=${req.query.contract} and wallet=${req.query.wallet} group by wallet`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
+  if (req.query.table.includes("EpiWallet")&&req.query.contract&&!req.query.wallet) {
+    console.log(req.query.contract)
+    conn.query(`SELECT contract, count(distinct txHash) as count FROM ${req.query.table} where contract=${req.query.contract} group by contract`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
+  if (req.query.table.includes("EpiWallet")&&!req.query.contract&&req.query.wallet) {
+    conn.query(`SELECT wallet, count(distinct txHash) as count FROM ${req.query.table} where wallet=${req.query.wallet} group by wallet`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
+  if (req.query.table.includes("EpiWallet")&&req.query.contract&&!req.query.wallet) {
+    conn.query(`SELECT contract, count(distinct txHash) as count FROM ${req.query.table} where contract=${req.query.contract} group by contract`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
 };
 export const createSwap = async (req, res, next) => {
   if (!req.body) return next(new AppError("No form data found", 404));
@@ -32,7 +81,7 @@ export const createSwap = async (req, res, next) => {
   //EpiWalletSwaps is the one where if an Epi wallet is detected we post to that wallet as well.
 
   //if those query parameters aren't met exit
-  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps"];
+  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps", "EpiWalletSwapsUnfiltered"];
   if (!Tables.includes(req.query.table))  return next(new AppError("No table was provided", 404));
 
   const result = conn.query(
@@ -123,6 +172,22 @@ export const getBlock = (req, res, next) => {
     console.log('missing query')
   }
 };
+
+//epiwallets
+//api/epiwalletsunfiltered/
+//api/swaps?table=EpiWalletsUnfiltered&contract=&wallet=
+// export const getAllContracts = (req, res, next) => {
+//   conn.query("SELECT * FROM EpiWallets", function (err, data, fields) {
+//     if(err) return next(new AppError(err))
+//     res.status(200).json({
+//       status: "success",
+//       length: data?.length,
+//       data: data,
+//     });
+//   });
+// };
+
+
 
 //CONTRACTS
 
@@ -345,6 +410,21 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   PRIMARY KEY(id)
   );
     CREATE TABLE EpiWalletSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
+  PRIMARY KEY(id)
+  );
+      CREATE TABLE EpiWalletSwapsUnfiltered(id int NOT NULL AUTO_INCREMENT,
   blockNumber double,
   symbol varchar(50),
   contract varchar(50),

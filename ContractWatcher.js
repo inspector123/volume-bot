@@ -41,6 +41,7 @@ class ContractWatcher {
 
         this.chatId = chatId;
         this.volumeBot = new Telegraf(volumeBotKey);
+        this.volumeBot.catch(e=>console.log(e))
         this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
         this.httpProvider = this.archiveProvider;
         this.archiveNodeUrl = archiveNodeUrl;
