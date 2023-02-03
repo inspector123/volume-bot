@@ -359,6 +359,21 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
       pairAddress varchar(50),
   PRIMARY KEY(id)
   );
+      CREATE TABLE AllPumpSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
+  PRIMARY KEY(id)
+  );
 
 
   id          | int         | NO   | PRI | NULL    | auto_increment |
@@ -389,6 +404,12 @@ PRIMARY KEY(id)
 
 
   can do that from here as well.
+
+
+OK, so we've got EpiWalletSwaps, MainSwaps, ContractSwaps(EpiWalletHistorical); and what else
+AllPumpSwaps
+
+
 
    */
 

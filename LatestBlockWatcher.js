@@ -35,6 +35,7 @@ export class LatestBlockWatcher {
     }
     startBots(AlertBotKey) {
         this.alertBot = new Telegraf(AlertBotKey);
+        this.alertBot.catch(e=>console.log(e))
 
         
     }
@@ -86,20 +87,32 @@ export class LatestBlockWatcher {
             const checkForWallet = wallets.filter(w=>w.wallet==_swaps[i].wallet);
             if (checkForWallet.length) {
                 console.log(checkForWallet[0])
-                this.alertBot.telegram.sendMessage(this.chatId, 
-                    `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${_swaps[i].usdVolume} ${_swaps[i].symbol}
-New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
 
-${_swaps[i].isBuy ? `Bought ` : `Sold`} $${_swaps[i].usdVolume} worth of ${_swaps[i].symbol}
-contract address: https://etherscan.io/token/${_swaps[i].contract}
+                try {
+                    this.alertBot.telegram.sendMessage(this.chatId, 
+                        `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${`${_swaps[i].usdVolume}`.replace(/\.[0-9]*/, "")} ${_swaps[i].symbol}
+    New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
 
-wallet: https://etherscan.io/address/${_swaps[i].wallet}
+    contract address: https://etherscan.io/token/${_swaps[i].contract}
 
-MARKETCAP: $${_swaps[i].marketCap}
+    wallet: https://etherscan.io/address/${_swaps[i].wallet}
 
-CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
-This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
-                `)
+    MARKETCAP: $${`${_swaps[i].marketCap}`.replace(/\.[0-9]*/, "")}
+
+    CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
+    This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
+                    `).catch(e=>console.log(e))
+                }
+                catch(e) {
+                    console.log(e, 'dfkjladfkjlfds')
+                }
+            }
+            if (this.swapParser.allSwapsData.length) {
+                try {
+                    await api.post(`/api/swaps?table=EpiWalletSwaps`, this.swapParser.allSwapsData)
+                }catch(e) {
+                    console.log(e.response.data)
+                }
             }
         }
         for (let i in _swaps) {
@@ -107,17 +120,24 @@ This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the
             if (checkForWallet.length) {
                 console.log(checkForWallet[0])
                 this.alertBot.telegram.sendMessage(this.chatIdUnfiltered, 
-                    `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${_swaps[i].usdVolume}  ${_swaps[i].symbol}
+                    `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${`${_swaps[i].usdVolume}`.replace(/\.[0-9]*/, "")}  ${_swaps[i].symbol}
 New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
 
-${_swaps[i].isBuy ? `Bought ` : `Sold`} $${_swaps[i].usdVolume} worth of ${_swaps[i].symbol}
 contract address: https://etherscan.io/token/${_swaps[i].contract}
 
-MARKETCAP: $${_swaps[i].marketCap}
+MARKETCAP: $${`${_swaps[i].marketCap}`.replace(/\.[0-9]*/, "")}
 
 CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
 This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
-                `)
+                `).catch(e=>console.log(e, 'fdaskjlfdaskj'))
+                //send to EpiWallets dtabase
+                // if (this.swapParser.allSwapsData.length) {
+                //     try {
+                //         await api.post(`/api/swaps?table="EpiWalletSwaps"`, this.swapParser.allSwapsData)
+                //     }catch(e) {
+                //         console.log(e.response.data)
+                //     }
+                // }
             }
         }
 

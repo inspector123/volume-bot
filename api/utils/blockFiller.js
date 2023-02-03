@@ -80,7 +80,7 @@ export class BlockFiller {
         }
     }
 
-    async getAllSwapsFromContract(contract, blockRangeEnd) {
+    async getAllSwapsFromContract(contract, table, blockRangeEnd) {
         //for now will have to specify if it's univ2 or univ3...
         // const pairAddress = new ethers.Contract(contract, )
         // const response = await this.archiveProvider.getLogs({})
@@ -156,7 +156,7 @@ export class BlockFiller {
             console.log('sending swaps to db.')
             if (this.swapParser.allSwapsData.length) {
                 try {
-                    await api.post(`/api/swaps?table=ContractSwaps`, this.swapParser.allSwapsData)
+                    await api.post(`/api/swaps?table=${table}`, this.swapParser.allSwapsData)
                 }catch(e) {
                     console.log(e.response.data)
                 }
