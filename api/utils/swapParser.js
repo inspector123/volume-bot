@@ -32,12 +32,17 @@ class SwapParser {
     allSwapsData = [];
     alreadyFoundPairs = [];
     pairsAsNumberSorted = [];
+    pairAddress;
 
 
 
     constructor(httpProviderUrl) {
         this.httpProvider = new ethers.providers.JsonRpcProvider(httpProviderUrl);
         this.intervalGetPrice();
+    }
+
+    setPairAddress(pairAddress) {
+        this.pairAddress = pairAddress;
     }
 
     async grabSwap(log) {
@@ -67,7 +72,6 @@ class SwapParser {
         try {
             const response = await api.get(`/api/pairs`)
             this.allPairsData = response.data.data;
-            this.convertPairs(this.allPairsData);
         } catch(e) {
             console.log('error getting pairs', e)
         }
@@ -94,44 +98,44 @@ class SwapParser {
 
     }
 
-    convertPairs() {
-        const pairsAsNumber = this.allPairsData.map((p,i)=>{
-            return {
-                bigIntValue: ethers.BigNumber.from(p.pairAddress).toBigInt(),
-                ...p
-            }
-        })
-        this.pairsAsNumberSorted = pairsAsNumber.sort((a, b) => (a.bigIntValue < b.bigIntValue) ? -1 : ((a.bigIntValue > b.bigIntValue) ? 1 : 0));
+    // convertPairs() {
+    //     const pairsAsNumber = this.allPairsData.map((p,i)=>{
+    //         return {
+    //             bigIntValue: ethers.BigNumber.from(p.pairAddress).toBigInt(),
+    //             ...p
+    //         }
+    //     })
+    //     this.pairsAsNumberSorted = pairsAsNumber.sort((a, b) => (a.bigIntValue < b.bigIntValue) ? -1 : ((a.bigIntValue > b.bigIntValue) ? 1 : 0));
 
-    }
+    // }
 
-    findPairUsingBinarySearch(pairAddress) {
-        const pairAsBigInt = ethers.BigNumber.from(pairAddress).toBigInt();
-        const sortedIndex = this.binarySearch(pairAsBigInt, this.pairsAsNumberSorted);
-        if (sortedIndex > 0) return [this.pairsAsNumberSorted[sortedIndex]];
-        else return []
-    }
+    // findPairUsingBinarySearch(pairAddress) {
+    //     const pairAsBigInt = ethers.BigNumber.from(pairAddress).toBigInt();
+    //     const sortedIndex = this.binarySearch(pairAsBigInt, this.pairsAsNumberSorted);
+    //     if (sortedIndex > 0) return [this.pairsAsNumberSorted[sortedIndex]];
+    //     else return []
+    // }
 
-    binarySearch(value, list) {
-        let low = 0;    //left endpoint
-        let high = list.length - 1;   //right endpoint
-        let position = -1;
-        let found = false;
-        let mid;
-        while (found === false && low <= high) {
-            mid = Math.floor((low + high)/2);
+    // binarySearch(value, list) {
+    //     let low = 0;    //left endpoint
+    //     let high = list.length - 1;   //right endpoint
+    //     let position = -1;
+    //     let found = false;
+    //     let mid;
+    //     while (found === false && low <= high) {
+    //         mid = Math.floor((low + high)/2);
     
-            if (list[mid].bigIntValue == value) {
-                found = true;
-                position = mid;
-            } else if (list[mid].bigIntValue > value) {  //if in lower half
-                high = mid - 1;
-            } else {  //in in upper half
-                low = mid + 1;
-            }
-        }
-        return position;
-    }
+    //         if (list[mid].bigIntValue == value) {
+    //             found = true;
+    //             position = mid;
+    //         } else if (list[mid].bigIntValue > value) {  //if in lower half
+    //             high = mid - 1;
+    //         } else {  //in in upper half
+    //             low = mid + 1;
+    //         }
+    //     }
+    //     return position;
+    // }
     
 
     addToSwaps(swap) {
@@ -283,6 +287,7 @@ class SwapParser {
                 blockNumber: log.blockNumber,
                 symbol: `${desiredSymbol}`,
                 contract: desiredToken,
+                pairAddress: log.address,
                 usdVolume: usdVolume,
                 usdPrice: usdPrice,
                 isBuy: transactionType,
@@ -443,6 +448,7 @@ class SwapParser {
                 blockNumber: log.blockNumber,
                 symbol: `${desiredSymbol}`,
                 contract: desiredToken,
+                pairAddress: log.address,
                 usdVolume: usdVolume,
                 usdPrice: usdPrice,
                 isBuy: transactionType,
@@ -490,7 +496,7 @@ class SwapParser {
                 let _token = new ethers.Contract(token, veryBankingBytes32ABI, this.httpProvider)
                 const details = {
                     totalSupply: (await _token.totalSupply()).toString(),
-                    decimals: await _token.decimals(),
+                    decimals: parseInt((await _token.decimals()).toString()),
                     symbol: ethers.utils.parseBytes32String(await _token.symbol())
                 };
                 return details;

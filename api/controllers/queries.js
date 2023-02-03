@@ -2,17 +2,68 @@ import AppError from '../utils/AppError.js';
 import conn from '../services/db.js';
 
 //BLOCKS
-export const getAllBlocks = (req, res, next) => {
-  conn.query("SELECT * FROM BlockEvents", function (err, data, fields) {
-    if(err) return next(new AppError(err))
-    res.status(200).json({
-      status: "success",
-      length: data?.length,
-      data: data,
+//api/swaps?table=EpiWalletsUnfiltered&contract=&wallet=
+export const getAllSwaps = (req, res, next) => {
+  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps","EpiWalletSwapsUnfiltered"];
+  if (!Tables.includes(req.query.table))  return next(new AppError("No form data found", 404));
+  if (!req.query.contract && !req.query.wallet) {
+    conn.query(`SELECT * FROM ${req.query.table} group by wallet`, function (err, data, fields) {
+      if(err) return next(new AppError(err))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
     });
-  });
+    return;
+  } 
+  if (req.query.table.includes("EpiWallet")&&req.query.contract&&req.query.wallet) {
+    conn.query(`SELECT wallet, count(distinct txHash) as count FROM ${req.query.table} where contract=${req.query.contract} and wallet=${req.query.wallet} group by wallet`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
+  if (req.query.table.includes("EpiWallet")&&req.query.contract&&!req.query.wallet) {
+    console.log(req.query.contract)
+    conn.query(`SELECT contract, count(distinct txHash) as count FROM ${req.query.table} where contract=${req.query.contract} group by contract`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
+  if (req.query.table.includes("EpiWallet")&&!req.query.contract&&req.query.wallet) {
+    conn.query(`SELECT wallet, count(distinct txHash) as count FROM ${req.query.table} where wallet=${req.query.wallet} group by wallet`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
+  if (req.query.table.includes("EpiWallet")&&req.query.contract&&!req.query.wallet) {
+    conn.query(`SELECT contract, count(distinct txHash) as count FROM ${req.query.table} where contract=${req.query.contract} group by contract`, function (err, data, fields) {
+      if(err) return next(new AppError(err, 404))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+    return;
+  }
 };
-export const createBlock = async (req, res, next) => {
+export const createSwap = async (req, res, next) => {
   if (!req.body) return next(new AppError("No form data found", 404));
   let { body } = req;
 
@@ -22,9 +73,19 @@ export const createBlock = async (req, res, next) => {
     return Object.values(b)
   })
 
+  //Table Descriptions
+  //ContractSwaps is the one that is focused on Wallets.
+
+  //AllSwaps is the one that posts new swaps every block.
+
+  //EpiWalletSwaps is the one where if an Epi wallet is detected we post to that wallet as well.
+
+  //if those query parameters aren't met exit
+  const Tables = ["ContractSwaps", "MainSwaps", "EpiWalletSwaps", "EpiWalletSwapsUnfiltered"];
+  if (!Tables.includes(req.query.table))  return next(new AppError("No table was provided", 404));
 
   const result = conn.query(
-    "INSERT INTO BlockEvents (blockNumber,symbol,contract,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
+    `INSERT INTO ${req.query.table} (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);`.repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -43,12 +104,12 @@ export const createBlock = async (req, res, next) => {
 
 
 export const getBlock = (req, res, next) => {
-  if (!req.params.blockNumber) {
-      res.status(404).json({status: "failure", data, length: data?.length});
-  }
+  // if (!req.params.contract) {
+  //     res.status(404).json({status: "failure", data, length: data?.length});
+  // }
   if (req.query.min) {  
     conn.query(
-      "SELECT min(blockNumber) as minBlockNumber from BlockEvents",
+      "SELECT min(blockNumber) as minBlockNumber from ContractSwaps",
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -60,7 +121,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.sortBySymbol) {
     conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM BlockEvents WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -73,18 +134,7 @@ export const getBlock = (req, res, next) => {
     );
   } if(req.query.max) {
     conn.query(
-      "SELECT max(blockNumber) as maxBlockNumber from BlockEvents",
-      function (err, data, fields) {
-        if(err) return next(new AppError(err))
-        res.status(200).json({
-          status: "success",
-          length: data?.length,
-          data: data,
-        });
-    });
-  } if (req.query.count) {
-    conn.query(
-      "SELECT count(id) as count from BlockEvents",
+      "SELECT max(blockNumber) as maxBlockNumber from MainSwaps",
       function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -94,10 +144,50 @@ export const getBlock = (req, res, next) => {
         });
     });
   }
+  if (req.query.count) {
+    conn.query(
+      "SELECT count(id) as count from ContractSwaps",
+      function (err, data, fields) {
+        if(err) return next(new AppError(err))
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+    });
+  } 
+  // if (req.query.max) {
+  //   conn.query(
+  //     "SELECT contract, max(blockNumber) as latestBlock, max(pairAddress) as pairAddress from ContractSwaps where contract = ?", [req.params.contract],
+  //     function (err, data, fields) {
+  //       if(err) return next(new AppError(err))
+  //       res.status(200).json({
+  //         status: "success",
+  //         length: data?.length,
+  //         data: data,
+  //       });
+  //   });
+  // }
   if (!req.query) {
     console.log('missing query')
   }
 };
+
+//epiwallets
+//api/epiwalletsunfiltered/
+//api/swaps?table=EpiWalletsUnfiltered&contract=&wallet=
+// export const getAllContracts = (req, res, next) => {
+//   conn.query("SELECT * FROM EpiWallets", function (err, data, fields) {
+//     if(err) return next(new AppError(err))
+//     res.status(200).json({
+//       status: "success",
+//       length: data?.length,
+//       data: data,
+//     });
+//   });
+// };
+
+
 
 //CONTRACTS
 
@@ -131,7 +221,7 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
     )
   } else {
     conn.query(
-      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume5m,volume15m,volume1h,volume1d, liqlockBlock, renounceBlock) VALUES(?)",
+      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume1m, volume5m,volume15m,volume1h,volume1d, liqlockBlock, renounceBlock) VALUES(?)",
       [Object.values(req.body)],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -289,7 +379,7 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   
   */
  /*
-  CREATE TABLE BlockEvents(id int NOT NULL AUTO_INCREMENT,
+  CREATE TABLE ContractSwaps(id int NOT NULL AUTO_INCREMENT,
   blockNumber double,
   symbol varchar(50),
   contract varchar(50),
@@ -301,6 +391,67 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   router varchar(50),
   etherPrice double,
    marketCap double,
+   pairAddress varchar(50),
+  PRIMARY KEY(id)
+  );
+    CREATE TABLE MainSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
+  PRIMARY KEY(id)
+  );
+    CREATE TABLE EpiWalletSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
+  PRIMARY KEY(id)
+  );
+      CREATE TABLE EpiWalletSwapsUnfiltered(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
+  PRIMARY KEY(id)
+  );
+      CREATE TABLE AllPumpSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
   PRIMARY KEY(id)
   );
 
@@ -319,6 +470,7 @@ CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
   symbol varchar(50),
   contract varchar(50),
 liqAddBlock double,
+volume1m double,
 volume5m double,
 volume15m double,
 volume1h double,
@@ -332,6 +484,12 @@ PRIMARY KEY(id)
 
 
   can do that from here as well.
+
+
+OK, so we've got EpiWalletSwaps, MainSwaps, ContractSwaps(EpiWalletHistorical); and what else
+AllPumpSwaps
+
+
 
    */
 
