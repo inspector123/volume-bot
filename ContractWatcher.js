@@ -50,7 +50,6 @@ class ContractWatcher {
     start() {
         this.setUpVolumeBot();
         //this.node();
-        this.test();
     }
 
     async test() {
@@ -140,6 +139,10 @@ class ContractWatcher {
         this.httpProvider.on('block', (latestBlockNumber)=>{
             this.latestBlockNumber = latestBlockNumber;
             this.blocks++;
+            if (!(this.blocks % 5)) {
+                console.log('running 1m job')
+                this.run1mJob();
+            }
             if (!(this.blocks % 25)) {
                 console.log('running 5m job')
                 this.run5mJob();
@@ -164,8 +167,8 @@ class ContractWatcher {
 
         // })
 
-        const log = await this.httpProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock:16451383, toBlock:16451383})
-        console.log(log)
+        // const log = await this.httpProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock:16451383, toBlock:16451383})
+        // console.log(log)
 
         //this.httpProvider.on()
         
@@ -234,6 +237,97 @@ class ContractWatcher {
         return;
     }
 
+    async run1mJob() {
+        
+        try {
+            //read from blockevents table last 5m of entries (last 25 blocks.)
+            const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-5);
+            console.log(sortedVolume)
+            
+            //get contracts that currently exist in Contracts table from last sql query.
+            const existingContracts = await api.post('/api/contracts?matching=true', sortedVolume.map(b=>b.contract))
+            let existingContractsData = []
+            if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
+            console.log('matching', existingContracts.data.data.length)
+
+            //for contracts that don't exist, get their age and add them
+            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            console.log('newContracts length', newContracts.length)
+            const postObjects = await Promise.all(newContracts.map(async sym=>{
+                const liqAddBlock = await this.getLiqAddBlock(sym.contract)
+                await this.getLiqLockBlock(sym);
+                let renounceBlock = await this.getRenounceBlock(sym);
+                return {
+                    symbol: sym.symbol,
+                    contract: sym.contract,
+                    liqAddBlock,
+                    volume1m: sym.volume,
+                    volume5m: 0,
+                    volume15m: 0,
+                    volume1h: 0,
+                    volume1d: 0,
+                    liqlockBlock: 0,
+                    renounceBlock
+                }
+            }));
+
+
+            console.log('got liq add blocks')
+            await this.postContracts(postObjects);
+
+            
+            // 4. for each contract that does exist, make a PUT with the 5m volume.
+            //take sorted volume and sort by "existingContracts"
+            let putObjects = [];
+            if (existingContractsData.length) {
+
+                putObjects = existingContractsData.map(c=>{
+                    const { volume: volume1m } = sortedVolume.filter(b=>b.contract == c.contract)[0];
+                    return {
+                        volume1m,
+                        ...c
+                    }
+
+                })
+                // putObjects = await Promise.all(putObjects.map(async o=>{
+                //     let liqlockBlock = o.liqlockBlock, renounceBlock = o.renounceBlock;
+                //     if (o.liqlockBlock != 0) {
+                //         const liqlockBlock = await this.getLiqLockBlock(o);
+                //     } 
+                //     if (o.renounceBlock != 0) {
+                //         const renounceBlock = await this.getRenounceBlock(o);
+                //     }
+                //     return {
+                //         liqlockBlock,
+                //         renounceBlock,
+                //         ...o
+                //     }
+
+                // }))
+                await this.putContracts(putObjects);
+            }
+
+
+            //ALERTS FOR 5M
+            let allObjects = [...putObjects, postObjects].flat();
+            for (let i in allObjects) {
+                let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
+                if (allObjects[i].volume5m > 10000 && timeSinceAdd < 30) {
+                    this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
+                }
+            }
+
+            // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
+
+
+
+            //
+        } catch(e) {
+            console.log(e)
+        }
+
+    }
+
 
     async run5mJob() {
         
@@ -258,6 +352,7 @@ class ContractWatcher {
                     symbol: sym.symbol,
                     contract: sym.contract,
                     liqAddBlock,
+                    volume1m: sym.volume,
                     volume5m: sym.volume,
                     volume15m: 0,
                     volume1h: 0,
@@ -496,6 +591,12 @@ class ContractWatcher {
             this.run5mJob();
         })
 
+        this.volumeBot.command('run1m', async ()=>{
+            this.volumeBot.telegram.sendMessage(this.chatId, 'running 1m Job')
+            this.run1mJob();
+        })
+
+
         this.volumeBot.command('fill', async (ctx)=>{
             this.volumeBot.telegram.sendMessage(this.chatId, 'disabled')
             // const replacedText = ctx.message.text.replace('/fill ', '')
@@ -590,26 +691,26 @@ class ContractWatcher {
         api.get('/api/blocks?')
     }
 
-    async getBasicSortedVolumePrintout(time) {
-        let blocks = this.getBlocksfromTime(time);
-        console.log(blocks)
-        if (blocks == 0) return 'error';
+    // async getBasicSortedVolumePrintout(time) {
+    //     let blocks = this.getBlocksfromTime(time);
+    //     console.log(blocks)
+    //     if (blocks == 0) return 'error';
 
-        const response = await api.get(`api/blocks/from/${blocks}?sortBySymbol=1`);
-        const data = response.data.data;
+    //     const response = await api.get(`api/blocks/from/${blocks}?sortBySymbol=1`);
+    //     const data = response.data.data;
 
-        const _string = data.reduce((i, j)=> {
-            return `symbol: ${i.symbol}, sum(usdVolume): ${i.volume}, contract: ${i.contract}
-            ----------------------------------------------------------------------------------
-            symbol: ${j.symbol}, sum(usdVolume): ${j.volume}, contract: ${j.contract}
-            ----------------------------------------------------------------------------------`
-        })
-        console.log(_string, 'asdfkjl')
-        return data;
-    }
+    //     const _string = data.reduce((i, j)=> {
+    //         return `symbol: ${i.symbol}, sum(usdVolume): ${i.volume}, contract: ${i.contract}
+    //         ----------------------------------------------------------------------------------
+    //         symbol: ${j.symbol}, sum(usdVolume): ${j.volume}, contract: ${j.contract}
+    //         ----------------------------------------------------------------------------------`
+    //     })
+    //     console.log(_string, 'asdfkjl')
+    //     return data;
+    // }
 
     async sortedSpecifyBlockNumber(blockNumber) {
-        const response = await api.get(`/api/blocks/${blockNumber}?sortBySymbol=1`)
+        const response = await api.get(`/api/swaps/${blockNumber}?sortBySymbol=1`)
         return response.data.data;
     }
 

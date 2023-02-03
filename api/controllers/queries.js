@@ -55,9 +55,9 @@ export const createSwap = async (req, res, next) => {
 
 
 export const getBlock = (req, res, next) => {
-  if (!req.params.contract) {
-      res.status(404).json({status: "failure", data, length: data?.length});
-  }
+  // if (!req.params.contract) {
+  //     res.status(404).json({status: "failure", data, length: data?.length});
+  // }
   if (req.query.min) {  
     conn.query(
       "SELECT min(blockNumber) as minBlockNumber from ContractSwaps",
@@ -72,7 +72,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.sortBySymbol) {
     conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM ContractSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -83,19 +83,18 @@ export const getBlock = (req, res, next) => {
         });
       }
     );
+  } if(req.query.max) {
+    conn.query(
+      "SELECT max(blockNumber) as maxBlockNumber from MainSwaps",
+      function (err, data, fields) {
+        if(err) return next(new AppError(err))
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+    });
   }
-  // } if(req.query.max) {
-  //   conn.query(
-  //     "SELECT max(blockNumber) as maxBlockNumber from ContractSwaps",
-  //     function (err, data, fields) {
-  //       if(err) return next(new AppError(err))
-  //       res.status(200).json({
-  //         status: "success",
-  //         length: data?.length,
-  //         data: data,
-  //       });
-  //   });
-  // }
   if (req.query.count) {
     conn.query(
       "SELECT count(id) as count from ContractSwaps",
@@ -108,18 +107,18 @@ export const getBlock = (req, res, next) => {
         });
     });
   } 
-  if (req.query.max) {
-    conn.query(
-      "SELECT contract, max(blockNumber) as latestBlock, max(pairAddress) as pairAddress from ContractSwaps where contract = ?", [req.params.contract],
-      function (err, data, fields) {
-        if(err) return next(new AppError(err))
-        res.status(200).json({
-          status: "success",
-          length: data?.length,
-          data: data,
-        });
-    });
-  }
+  // if (req.query.max) {
+  //   conn.query(
+  //     "SELECT contract, max(blockNumber) as latestBlock, max(pairAddress) as pairAddress from ContractSwaps where contract = ?", [req.params.contract],
+  //     function (err, data, fields) {
+  //       if(err) return next(new AppError(err))
+  //       res.status(200).json({
+  //         status: "success",
+  //         length: data?.length,
+  //         data: data,
+  //       });
+  //   });
+  // }
   if (!req.query) {
     console.log('missing query')
   }
@@ -157,7 +156,7 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
     )
   } else {
     conn.query(
-      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume5m,volume15m,volume1h,volume1d, liqlockBlock, renounceBlock) VALUES(?)",
+      "INSERT INTO Contracts (symbol, contract, liqAddBlock ,volume1m, volume5m,volume15m,volume1h,volume1d, liqlockBlock, renounceBlock) VALUES(?)",
       [Object.values(req.body)],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -376,6 +375,7 @@ CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
   symbol varchar(50),
   contract varchar(50),
 liqAddBlock double,
+volume1m double,
 volume5m double,
 volume15m double,
 volume1h double,

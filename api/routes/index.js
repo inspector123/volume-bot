@@ -7,7 +7,7 @@ const router = express.Router();
 //swaps table
 router.route("/api/swaps").get(getAllSwaps)
     .post(createSwap);
-router.route("/api/swaps/:contract")
+router.route("/api/swaps/:blockNumber")
     .get(getBlock)
 // //contracts table
 // router.route("/api/contracts")
