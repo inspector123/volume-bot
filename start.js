@@ -19,6 +19,7 @@ const {
     ALERT_BOT_KEY,
     CHAT_ID_BETA_TEST,
     CHAT_ID_UNFILTERED,
+    CHAT_ID_VOLUME_ALERTS,
     PORT
  } = process.env;
 const app = express();
@@ -58,7 +59,7 @@ switch(process.env.PROGRAM) {
         process.exit();
     case "CONTRACTS": 
         console.log('running contracts bot')
-        const watcher = new ContractWatcher(CHAT_ID_BETA_TEST, VOLUME_BOT_KEY,archiveNodeUrl);
+        const watcher = new ContractWatcher(CHAT_ID_VOLUME_ALERTS,VOLUME_BOT_KEY,archiveNodeUrl);
         watcher.start();
         break;
     case "LATEST":
