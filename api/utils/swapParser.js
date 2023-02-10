@@ -98,46 +98,6 @@ class SwapParser {
 
     }
 
-    // convertPairs() {
-    //     const pairsAsNumber = this.allPairsData.map((p,i)=>{
-    //         return {
-    //             bigIntValue: ethers.BigNumber.from(p.pairAddress).toBigInt(),
-    //             ...p
-    //         }
-    //     })
-    //     this.pairsAsNumberSorted = pairsAsNumber.sort((a, b) => (a.bigIntValue < b.bigIntValue) ? -1 : ((a.bigIntValue > b.bigIntValue) ? 1 : 0));
-
-    // }
-
-    // findPairUsingBinarySearch(pairAddress) {
-    //     const pairAsBigInt = ethers.BigNumber.from(pairAddress).toBigInt();
-    //     const sortedIndex = this.binarySearch(pairAsBigInt, this.pairsAsNumberSorted);
-    //     if (sortedIndex > 0) return [this.pairsAsNumberSorted[sortedIndex]];
-    //     else return []
-    // }
-
-    // binarySearch(value, list) {
-    //     let low = 0;    //left endpoint
-    //     let high = list.length - 1;   //right endpoint
-    //     let position = -1;
-    //     let found = false;
-    //     let mid;
-    //     while (found === false && low <= high) {
-    //         mid = Math.floor((low + high)/2);
-    
-    //         if (list[mid].bigIntValue == value) {
-    //             found = true;
-    //             position = mid;
-    //         } else if (list[mid].bigIntValue > value) {  //if in lower half
-    //             high = mid - 1;
-    //         } else {  //in in upper half
-    //             low = mid + 1;
-    //         }
-    //     }
-    //     return position;
-    // }
-    
-
     addToSwaps(swap) {
         this.allSwapsData = [...this.allSwapsData, swap]
     }
@@ -239,7 +199,7 @@ class SwapParser {
             amount0Out 2,0
             */
             if (details.desiredTokenOut == 0 && details.poolTokenIn == 0)  { 
-                transactionType = 0;
+                transactionType = -1;
                 amountPoolTokenWithDecimals = details.poolTokenOut / 10**poolDecimals
                 amountDesiredTokenWithDecimals = details.desiredTokenIn / 10**desiredDecimals
                 if (isStableCoin) {
@@ -420,7 +380,7 @@ class SwapParser {
             } 
             if (details.poolTokenAmount < 0) {
                 
-                transactionType = 0;
+                transactionType = -1;
                 if (isStableCoin) {
                     usdVolume = -1*amountPoolTokenWithDecimals;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals;
@@ -525,6 +485,14 @@ class SwapParser {
                 return "UniswapV2";
             case OneInchV4Router: 
                 return "1InchV4";
+            case Constants.UniswapUniversalRouter:
+                return "UniswapUniversalRouter";
+            case Constants.MetamaskSwap:
+                return "MetamaskRouter";
+            case Constants.coinbasewalletProxy0x:
+                return "CoinbaseWallet0x"
+            case Constants.UniswapV3:
+                return "UniswapV3";
             default: 
                 return address;
         }

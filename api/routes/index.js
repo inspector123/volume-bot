@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllSwaps, getBlock,createContractOrGetMatchingContracts, createSwap,deleteContract, updateContract, createPair, getPairByPairAddress, getAllPairs } from '../controllers/queries.js';
+import { getAllSwaps, getBlock,createContractOrGetMatchingContracts, createSwap,deleteContract, createPair, getPairByPairAddress, getAllPairs } from '../controllers/queries.js';
 const router = express.Router();
 //
 
@@ -14,10 +14,10 @@ router.route("/api/swaps/:blockNumber")
 //     .put(updateContract)
 
 //contracts table
-router.route("/api/contracts").post(createContractOrGetMatchingContracts); //have ?matching to figure out if it's gonna be the one post or the other
+router.route("/api/contractDetails").post(createContractOrGetMatchingContracts); //have ?matching to figure out if it's gonna be the one post or the other
 
-router.route("/api/contracts") //?volume5m=...
-    .put(updateContract)
+// router.route("/api/contractDetails") //?volume5m=...
+//     .put(updateContract)
 
 
 //PAIRS

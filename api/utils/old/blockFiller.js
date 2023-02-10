@@ -53,7 +53,7 @@ export class BlockFiller {
 
     async fillBlocksFromBehind(blocks) {
         // step 1: get first blockNumber in your database.
-        const response = await api.get(`/api/blocks/1?min=true`);
+        const response = await api.get(`/api/swaps/1?min=true`);
         const { minBlockNumber } = response.data.data[0];
         console.log('starting block: ', minBlockNumber)
         await this.runSwapParseSqlRoutine(minBlockNumber-blocks, minBlockNumber-1, true)
@@ -66,7 +66,7 @@ export class BlockFiller {
     }
 
     async fillUpToHighestBlock() {
-        const response = await api.get(`/api/blocks/1?max=true`);
+        const response = await api.get(`/api/swaps/1?max=true`);
         const { maxBlockNumber } = response.data.data[0];
         const blockNumber = await this.archiveProvider.getBlockNumber();
         console.log('starting block: ', maxBlockNumber, 'ending block:', blockNumber)
@@ -78,7 +78,7 @@ export class BlockFiller {
             if (!fromBlock || !toBlock) throw new Error('missing from or to block')
             let count, _count
             if (stats) {
-                const { data: {data}} = await api.get('/api/blocks/1?count=true')
+                const { data: {data}} = await api.get('/api/swaps/1?count=true')
                 console.log('current block count: ', data[0].count);
                 console.log('getting all pairs')
             }
@@ -119,7 +119,7 @@ export class BlockFiller {
             time1 = Date.now();
             if (this.swapParser.allSwapsData.length) {
                 try {
-                    await api.post('/api/blocks', this.swapParser.allSwapsData)
+                    await api.post('/api/swaps', this.swapParser.allSwapsData)
                 }catch(e) {
                     console.log(e.response.data)
                 }
@@ -128,7 +128,7 @@ export class BlockFiller {
             console.log('time to post all blocks: ', totalTime)
             console.log('DONE.')
             if (stats) {
-                const { data: {data: _data}} = await api.get('/api/blocks/1?count=true');
+                const { data: {data: _data}} = await api.get('/api/swaps/1?count=true');
 
                 console.log('current block count: ', _data[0].count);
             }

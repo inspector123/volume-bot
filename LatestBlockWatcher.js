@@ -50,7 +50,7 @@ export class LatestBlockWatcher {
         this.archiveProvider.on('block', async (block)=>{
             console.log('latest block: ', block)
 
-            await this.latestBlockWallets(block);
+            this.latestBlockWallets(block);
 
 
         })
@@ -90,79 +90,83 @@ export class LatestBlockWatcher {
                 }
             }
 
-            //Run EpiWallet Routine
-            let { allSwapsData: _swaps } = this.swapParser;
-            for (let i in _swaps) {
-                const checkForWallet = wallets.filter(w=>w.wallet==_swaps[i].wallet);
-                if (checkForWallet.length) {
-                    console.log(checkForWallet, _swaps[i].wallet)
+    //         //Run EpiWallet Routine
+    //         let { allSwapsData: _swaps } = this.swapParser;
+    //         for (let i in _swaps) {
+    //             const checkForWallet = wallets.filter(w=>w.wallet==_swaps[i].wallet);
+    //             if (checkForWallet.length) {
+    //                 console.log(checkForWallet, _swaps[i].wallet)
                     
-                    try {
-                        this.alertBot.telegram.sendMessage(this.chatId, 
-                            `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${`${_swaps[i].usdVolume}`.replace(/\.[0-9]*/, "")} ${_swaps[i].symbol}
-        New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
+    //                 try {
+    //                     this.alertBot.telegram.sendMessage(this.chatId, 
+    //                         `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${`${_swaps[i].usdVolume}`.replace(/\.[0-9]*/, "")} ${_swaps[i].symbol}
+    //     New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
 
-        contract address: https://etherscan.io/token/${_swaps[i].contract}
+    //     contract address: https://etherscan.io/token/${_swaps[i].contract}
 
-        wallet: https://etherscan.io/address/${_swaps[i].wallet}
+    //     wallet: https://etherscan.io/address/${_swaps[i].wallet}
 
-        MARKETCAP: $${`${_swaps[i].marketCap}`.replace(/\.[0-9]*/, "")}
+    //     MARKETCAP: $${`${_swaps[i].marketCap}`.replace(/\.[0-9]*/, "")}
 
-        CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
-        This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
-                        `).catch(e=>console.log(e))
-                    }
-                    catch(e) {
-                        console.log(e, 'dfkjladfkjlfds')
-                    }
-                }
-                if (this.swapParser.allSwapsData.length) {
-                    try {
-                        await api.post(`/api/swaps?table=EpiWalletSwaps`, this.swapParser.allSwapsData)
-                    }catch(e) {
-                        console.log(e.response.data)
-                    }
-                }
-            }
-            for (let i in _swaps) {
-                const checkForWallet = walletsUnfiltered.filter(w=>w.wallet==_swaps[i].wallet);
-                if (checkForWallet.length) {
-                    console.log(checkForWallet[0], _swaps[i].wallet)
-                    const count = await api.get(`/api/swaps?table=EpiWalletSwapsUnfiltered&wallet="${checkForWallet[0].wallet}"&contract="${_swaps[i].contract}"`)
-                    const countWallet = await api.get(`/api/swaps?table=EpiWalletSwapsUnfiltered&wallet="${checkForWallet[0].wallet}"`)
-                    const countContract =  await api.get(`/api/swaps?table=EpiWalletSwapsUnfiltered&contract="${_swaps[i].contract}"`)
-                    //console.log(count.data.data[0], countWallet.data, countContract.data.data[0])
-                    console.log(count.data)
+    //     CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
+    //     This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
+    //                     `).catch(e=>console.log(e))
+    //                 }
+    //                 catch(e) {
+    //                     console.log(e, 'dfkjladfkjlfds')
+    //                 }
+    //             }
+    //             if (this.swapParser.allSwapsData.length) {
+    //                 try {
+    //                     await api.post(`/api/swaps?table=EpiWalletSwaps`, this.swapParser.allSwapsData)
+    //                 }catch(e) {
+    //                     console.log(e.response.data)
+    //                 }
+    //             }
+    //         }
+    //         for (let i in _swaps) {
+    //             const checkForWallet = walletsUnfiltered.filter(w=>w.wallet==_swaps[i].wallet);
+    //             if (checkForWallet.length) {
+    //                 console.log(checkForWallet[0], _swaps[i].wallet)
+    //                 const count = await api.get(`/api/swaps?table=EpiWalletSwapsUnfiltered&wallet="${checkForWallet[0].wallet}"&contract="${_swaps[i].contract}"`)
+    //                 const countWallet = await api.get(`/api/swaps?table=EpiWalletSwapsUnfiltered&wallet="${checkForWallet[0].wallet}"`)
+    //                 const countContract =  await api.get(`/api/swaps?table=EpiWalletSwapsUnfiltered&contract="${_swaps[i].contract}"`)
+    //                 //console.log(count.data.data[0], countWallet.data, countContract.data.data[0])
+    //                 console.log(count.data)
                     
                     
-                    this.alertBot.telegram.sendMessage(this.chatIdUnfiltered, 
-                        `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${`${_swaps[i].usdVolume}`.replace(/\.[0-9]*/, "")}  ${_swaps[i].symbol}
-    New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
+    //                 this.alertBot.telegram.sendMessage(this.chatIdUnfiltered, 
+    //                     `${_swaps[i].isBuy ? `Bought ` : `Sold`} $${`${_swaps[i].usdVolume}`.replace(/\.[0-9]*/, "")}  ${_swaps[i].symbol}
+    // New transaction from ${_swaps[i].wallet} on ${_swaps[i].router}
 
-    contract address: https://etherscan.io/token/${_swaps[i].contract}
+    // contract address: https://etherscan.io/token/${_swaps[i].contract}
 
-    MARKETCAP: $${`${_swaps[i].marketCap}`.replace(/\.[0-9]*/, "")}
+    // MARKETCAP: $${`${_swaps[i].marketCap}`.replace(/\.[0-9]*/, "")}
 
-    CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
-    This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
-    Count on this wallet: ${count ? count.data.data[0] : 0}
+    // CHART: https://dextools.io/app/ether/pair-explorer/${_swaps[i].pairAddress}
+    // This wallet interacted ${checkForWallet[0].interactions} of the last 6 times the bot was active.
+    // Count on this wallet: ${count ? count.data.data[0] : 0}
     
-    Count on this contract:${countContract.data ? countContract.data.data[0].count : 0}
-                    `).catch(e=>console.log(e, 'fdaskjlfdaskj'))
-                   // send to EpiWalletsUnfiltered dtabase
-                    if (this.swapParser.allSwapsData.length) {
-                        try {
-                            await api.post(`/api/swaps?table=EpiWalletSwapsUnfiltered`, this.swapParser.allSwapsData)
-                        }catch(e) {
-                            console.log(e.response.data)
-                        }
-                    }
-                }
-            }
+    // Count on this contract:${countContract.data ? countContract.data.data[0].count : 0}
+    //                 `).catch(e=>console.log(e, 'fdaskjlfdaskj'))
+    //                // send to EpiWalletsUnfiltered dtabase
+    //                 if (this.swapParser.allSwapsData.length) {
+    //                     try {
+    //                         await api.post(`/api/swaps?table=EpiWalletSwapsUnfiltered`, this.swapParser.allSwapsData)
+    //                     }catch(e) {
+    //                         console.log(e.response.data)
+    //                     }
+    //                 }
+    //             }
+    //         }
 
 
 
             //Run FreshWallet Routine
+            //nah.
+
+
+    
 
 
 

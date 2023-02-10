@@ -43,7 +43,8 @@ const wssPort = "9536"
 
 //const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
-const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST,CHAT_ID_UNFILTERED, ALERT_BOT_KEY, VOLUME_BOT_KEY, archiveNodeUrl)
+
+
 const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
 
 
@@ -58,30 +59,14 @@ switch(process.env.PROGRAM) {
         console.log('Completed.')
         process.exit();
     case "CONTRACTS": 
+        const contractWatcher = new ContractWatcher(CHAT_ID_VOLUME_ALERTS,VOLUME_BOT_KEY,archiveNodeUrl);
         console.log('running contracts bot')
-        const watcher = new ContractWatcher(CHAT_ID_VOLUME_ALERTS,VOLUME_BOT_KEY,archiveNodeUrl);
-        watcher.start();
+        contractWatcher.start();
         break;
     case "LATEST":
+        const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST,CHAT_ID_UNFILTERED, ALERT_BOT_KEY, VOLUME_BOT_KEY, archiveNodeUrl)
         latestWatcher.start();
         break;
-
-    case "SYNC":
-        const epiWallets = ["0x8eEcaad83a1Ea77bD88A818d4628fAfc4CaD7969",
-        // "0x2dc1f8a31080d0d7d03c2c719a02955a3548e478",
-        // "0x0a7fe158fcbddd5e665e276aaf40f804261c653d",
-        // "0x6f3277ad0782a7da3eb676b85a8346a100bf9c1c",
-        // "0x49642110B712C1FD7261Bc074105E9E44676c68F"
-    ]
-        for (let i in epiWallets) {
-            await blockFiller.getAllSwapsFromContract(epiWallets[i], "AllPumpSwaps");
-            console.log(`Completed ${epiWallets[i]}, ${i+1} of ${epiWallets.length}`);
-        }
-        console.log('Completed.')
-        process.exit();
-        break;
-
-    // case "FINDBLOCKBYDATE":
     case "TEST":
         //await LatestBlockWatcher.processWallets();
 
