@@ -33,6 +33,7 @@ class SwapParser {
     alreadyFoundPairs = [];
     pairsAsNumberSorted = [];
     pairAddress;
+    blockTimestamp;
 
 
 
@@ -50,10 +51,11 @@ class SwapParser {
             let swap;
             if (log.topics[0] == v2topic) {
                 swap = await this.handlev2Log(log);
+                return swap;
             } else if (log.topics[0] == v3topic) {
                 swap = await this.handlev3Log(log);
+                return swap;
             }
-            return swap;
         } catch(e) {
             console.log(e)
         }
@@ -66,6 +68,13 @@ class SwapParser {
         } catch(e) {
             console.log('error posting pair')
         }
+    }
+
+    async getBlockTimestamp(blockNumber) {
+        if (this.blockNumber != blockNumber) {
+            this.blockTimestamp = (await this.httpProvider.getBlock(blockNumber)).timestamp*1000;
+            return this.blockTimestamp
+        } else return this.blockTimestamp
     }
 
     async getAllPairs() {
@@ -87,7 +96,7 @@ class SwapParser {
     getPair(pairAddress) {
         const alreadyFoundPair = this.alreadyFoundPairs.filter(p=>p.pairAddress==pairAddress);
         if (alreadyFoundPair.length) {
-            return alreadyFoundPair;
+            return alreadyFoundPair[0];
         } else {
             const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
             if (findPair.length) {
@@ -111,6 +120,7 @@ class SwapParser {
         
             const tx = await this.httpProvider.getTransaction(log.transactionHash);
             if (!acceptedRouters.includes(tx.to)) return; 
+            this.blockTimestamp = await this.getBlockTimestamp(tx.blockNumber);
             const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
@@ -255,7 +265,8 @@ class SwapParser {
                 wallet: tx.from,
                 router: this.routerName(tx.to),
                 etherPrice: this.etherPrice,
-                marketCap: marketCap == null ? 0 : marketCap
+                marketCap: marketCap == null ? 0 : marketCap,
+                dateTime: new Date(this.blockTimestamp).toISOString()
             }
             
             //post to pairs if pairs didnt exist
@@ -274,7 +285,7 @@ class SwapParser {
 
                 this.addToPairs(pairBody)
             }
-            this.addToSwaps(v2SwapsToAdd)
+            //his.addToSwaps(v2SwapsToAdd)
             return v2SwapsToAdd
         } catch(e) {
             console.log(e)
@@ -286,6 +297,7 @@ class SwapParser {
             //console.log(receipt)
             const tx = await this.httpProvider.getTransaction(log.transactionHash)
             if (!acceptedRouters.includes(tx.to)) return; 
+            this.blockTimestamp = await this.getBlockTimestamp(tx.blockNumber);
             const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
@@ -333,8 +345,6 @@ class SwapParser {
 
             let transactionType, usdVolume, usdPrice,amountPoolTokenWithDecimals, amountDesiredTokenWithDecimals;
             //set up contracts
-            const _desiredToken = new ethers.Contract(desiredToken, basicTokenABI, this.httpProvider);
-            const _poolToken = new ethers.Contract(poolToken, basicTokenABI, this.httpProvider);
             let poolDecimals, desiredDecimals, desiredSymbol, totalSupply, poolSymbol;
             //set pool / decimal attributes
             poolDecimals = token0 == poolToken ? token0Decimals : token1Decimals;
@@ -356,6 +366,7 @@ class SwapParser {
                 details.desiredTokenAmount = parsedLog.args.amount1,
                 details.poolTokenAmount = parsedLog.args.amount0
             }
+            //console.log(log.transactionHash, details)
             amountDesiredTokenWithDecimals = details.desiredTokenAmount / 10**desiredDecimals;
             amountPoolTokenWithDecimals = details.poolTokenAmount / 10 ** poolDecimals;
             const isStableCoin = [USDC,USDT,DAI,FRAX].includes(poolToken);
@@ -367,29 +378,29 @@ class SwapParser {
                 transactionType = 1;
                 if (isStableCoin) {
                     usdVolume = amountPoolTokenWithDecimals;
-                    usdPrice = amountPoolTokenWithDecimals / -1*amountDesiredTokenWithDecimals;
+                    usdPrice = amountPoolTokenWithDecimals/amountDesiredTokenWithDecimals*-1;
                 } 
-                if (isWeth) {
+                else if (isWeth) {
                     usdVolume = amountPoolTokenWithDecimals  * this.etherPrice ;
-                    usdPrice = (amountPoolTokenWithDecimals * this.etherPrice )/ -1*amountDesiredTokenWithDecimals;
+                    usdPrice = amountPoolTokenWithDecimals/amountDesiredTokenWithDecimals * this.etherPrice * -1;
                 }
-                if (isWBTC) {
+                else if (isWBTC) {
                     usdVolume = amountPoolTokenWithDecimals  * this.btcPrice ;
-                    usdPrice = (amountPoolTokenWithDecimals * this.btcPrice )/ -1*amountDesiredTokenWithDecimals;
+                    usdPrice = amountPoolTokenWithDecimals/amountDesiredTokenWithDecimals * this.btcPrice * -1;
                 }
             } 
-            if (details.poolTokenAmount < 0) {
+            else if (details.poolTokenAmount < 0) {
                 
                 transactionType = -1;
                 if (isStableCoin) {
                     usdVolume = -1*amountPoolTokenWithDecimals;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals;
                 } 
-                if (isWeth) {
+                else if (isWeth) {
                     usdVolume = -1*(amountPoolTokenWithDecimals ) * this.etherPrice;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals * this.etherPrice;
                 }
-                if (isWBTC) {
+                else if (isWBTC) {
                     usdVolume = -1*(amountPoolTokenWithDecimals ) * this.btcPrice;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals * this.btcPrice;
                 }
@@ -416,7 +427,8 @@ class SwapParser {
                 wallet: tx.from,
                 router: this.routerName(tx.to),
                 etherPrice: this.etherPrice,
-                marketCap: marketCap == null ? 0 : marketCap
+                marketCap: marketCap == null ? 0 : marketCap,
+                dateTime: new Date(this.blockTimestamp).toISOString()
             }
             //post to pairs if pairs didnt exist
             if (!pair.length) {
@@ -434,7 +446,7 @@ class SwapParser {
 
                 this.addToPairs(pairBody)
             }
-            this.addToSwaps(v3Swap)
+            //this.addToSwaps(v3Swap)
             return v3Swap
         }
         catch(e) {

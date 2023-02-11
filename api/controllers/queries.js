@@ -40,7 +40,7 @@ export const createSwap = async (req, res, next) => {
   if (!Tables.includes(req.query.table))  return next(new AppError("No table was provided", 404));
 
   const result = conn.query(
-    `INSERT INTO ${req.query.table} (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap) VALUES(?);`.repeat(_body.length),_body, (err,data)=>{
+    `INSERT INTO ${req.query.table} (blockNumber,symbol,contract,pairAddress,usdVolume,usdPrice,isBuy,txHash,wallet,router,etherPrice, marketCap, dateTime) VALUES(?);`.repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -76,7 +76,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.sortBySymbol) {
     conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price, sum(IF(isBuy=1,isBuy*usdVolume, 0)) as sumBuys, sum(IF(isBuy=-1, isBuy*usdVolume, 0)) as sumSells FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -192,13 +192,21 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
 //You could have a job to update liqlockblock or renounceblock;
 //or just have topics take care of that. but right now, i dont know about that.
 
-// export const createContracts = async(req, res, next) => {
-//   return next(new AppError("No form data found", 404));
-//   //first, use select query to filter out all the contracts that need to be updated, not created
-//   //conn.query(`INSERT INTO Contracts (symbol,contract,age,volume5m,volume15m,volume1h,volume1d,avgBuy5,avgBuy15,avgBuyH,BuyRatio5,BuyRatio15,BuyRatioH) VALUES(?);`.repeat(req.body.length),req.body.map(b=>Object.values(b)))
-//   // })
+export const createContracts = async(req, res, next) => {
+  if (!req.body) return next(new AppError("No form data found", 404));
+  conn.query(`INSERT INTO Contracts (contract,symbol,dateTime, blockNumber, marketCap,price,volume1m,volume5m,volume15m,volume1h,volume1d,buyRatio1m,buyRatio15m,buyRatio1d,ageInMinutes) VALUES(?);`.repeat(req.body.length)
+    ,req.body.map(b=>Object.values(b)), function (err, data, fields) { if (err) return next(new AppError(err, 500));
+    res.status(201).json({
+      status: "success",
+      message: `contract ${req.body.contract} added!`,
+    });
+  })
   
-// }
+}
+
+export const getContractsByDate = async (req,res,next) => {
+
+}
 
 // export const updateContract = (req, res, next) => {
 //   if (!req.body.contract) {
@@ -444,9 +452,9 @@ PRIMARY KEY(id)
         volume15m double,
         volume1h double,
         volume1d double,
-        buyRatio1M double,
-        buyRatio15M double,
-        buyRatio1D double,
+        buyRatio1m double,
+        buyRatio15m double,
+        buyRatio1d double,
         ageInMinutes double,
         PRIMARY KEY(id)
           );

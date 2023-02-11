@@ -49,10 +49,28 @@ export class LatestBlockWatcher {
         if (blocks) this.blocks = blocks;
         this.archiveProvider.on('block', async (block)=>{
             console.log('latest block: ', block)
+            if (this.swapParser.newPairsData.length) {
+                
+                try {
+                    await api.post('/api/pairs', this.swapParser.newPairsData)
+                }catch(e) {
+                    console.log(e.response.data, 'pairs blah')
+                }
+            }
+            this.swapParser.reset();
+            this.swapParser.getAllPairs();
 
-            this.latestBlockWallets(block);
 
-
+        })
+        this.archiveProvider.on({topics: [[v2topic,v3topic]]}, async (log)=>{
+            let swap = await this.swapParser.grabSwap(log);
+            if (swap != {} && swap != undefined) {
+                try {
+                    const response = await api.post(`/api/swaps?table=MainSwaps`, [swap])
+                }catch(e) {
+                    console.log(e.response, 'error')
+                }
+            }
         })
 
     }
@@ -66,14 +84,15 @@ export class LatestBlockWatcher {
 
             //Get swaps for current block
             let swaps = await this.archiveProvider.getLogs({topics:[[v2topic,v3topic]], fromBlock: block});
-            this.swapParser.reset();
-            this.swapParser.getAllPairs();
+            await this.swapParser.getAllPairs();
+            let parsed = []
             for (let i in swaps) {
-                await this.swapParser.grabSwap(swaps[i]);
+                let swap = await this.swapParser.grabSwap(swaps[i]);
+                if (swap) parsed = [...parsed, swap]
             }
-
             //Post to pairs db
             if (this.swapParser.newPairsData.length) {
+                
                 try {
                     await api.post('/api/pairs', this.swapParser.newPairsData)
                 }catch(e) {
@@ -82,9 +101,33 @@ export class LatestBlockWatcher {
             }
 
             //Post to MainSwaps db
-            if (this.swapParser.allSwapsData.length) {
+            parsed = parsed.flat();
+            // const parsedTxHashes = parsed.map(p=>p.txHash);
+            // parsed = parsed.filter((p,i)=>{
+            //     p.indexOf(p.txHash) 
+            // })
+            
+            const counts = parsed.map(p=>p.txHash).reduce((acc, value) => ({
+                ...acc,
+                [value]: (acc[value] || 0) + 1
+             }), {});
+             
+            var parsedMultiples = []
+
+            for (let i in parsed) {
+                //find duplicates
+                let duplicates = parsed.filter((p)=>p.txHash == parsed[i].txHash && p.usdVolume == parsed[i].usdVolume).length;
+                parsedMultiples = [...parsedMultiples, {txHash: parsed[i].txHash, instances: duplicates}]
+                
+
+            }
+
+            console.log(parsedMultiples.filter(i=>i.instances>2));
+            if (parsed.length) {
                 try {
-                    await api.post(`/api/swaps?table=MainSwaps`, this.swapParser.allSwapsData)
+                    const response = await api.post(`/api/swaps?table=MainSwaps`, parsed)
+                    console.log(response.data.status)
+
                 }catch(e) {
                     console.log(e.response.data)
                 }

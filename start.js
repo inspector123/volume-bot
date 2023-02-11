@@ -45,7 +45,7 @@ const wssPort = "9536"
 const archiveNodeUrl = `http://${archiveNodeIp}:${httpPort}`
 
 
-const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
+//const blockFiller = new BlockFiller(CHAT_ID_BETA_TEST, archiveNodeUrl);
 
 
 
@@ -53,11 +53,11 @@ switch(process.env.PROGRAM) {
     //"0x2d886570A0dA04885bfD6eb48eD8b8ff01A0eb7e" == BCB
     // 0xa71d0588EAf47f12B13cF8eC750430d21DF04974 = QOM
     case "FILLIN": 
-        if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
-        console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
-        await blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
-        console.log('Completed.')
-        process.exit();
+        // if (!process.env.FROMBLOCK || !process.env.TOBLOCK) throw new Error('fromblock or toblock not specified')
+        // console.log(process.env.FROMBLOCK, process.env.TOBLOCK)
+        // await blockFiller.fillBetween(parseInt(process.env.FROMBLOCK), parseInt(process.env.TOBLOCK));
+        // console.log('Completed.')
+        // process.exit();
     case "CONTRACTS": 
         const contractWatcher = new ContractWatcher(CHAT_ID_VOLUME_ALERTS,VOLUME_BOT_KEY,archiveNodeUrl);
         console.log('running contracts bot')

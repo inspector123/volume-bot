@@ -209,16 +209,49 @@ class ContractWatcher {
 
 
             //existingContracts and newContracts with postObjects
-            console.log(existingContractsData, postObjects)
             const allContracts = [...existingContractsData, ...postObjects].flat();
+            let contractObjects = []
             for (let i in allContracts) {
-                const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract);
-                let contractObject = {
-                    contract: allContracts[i].object,
-                    symbol: allContracts[i].symbol,
-                    market
+                const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
+                if (getExistingVolume) {
+                    let contractObject = {
+                        contract: getExistingVolume.contract,
+                        symbol: getExistingVolume.symbol,
+                        dateTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        blockNumber: this.latestBlockNumber,
+                        marketCap: getExistingVolume.marketCap,
+                        price: getExistingVolume.price,
+                        volume1m: getExistingVolume.volume,
+                        volume5m: 0,
+                        volume15m: 0,
+                        volume1h: 0,
+                        volume1d: 0,
+                        buyRatio1m: (getExistingVolume.sumBuys + getExistingVolume.sumSells) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
+                        buyRatio15m: 0,
+                        buyRatio1d: 0,
+                        ageInMinutes: 0
+
+                    }
+                    contractObjects = [...contractObjects, contractObject]
                 }
             }
+            contractObjects = contractObjects.flat();
+
+            try {
+                await api.post(`api/contracts`, contractObjects)
+            } catch(e) {
+                console.log(e.response.data)
+            }
+
+
+
+
+            //PUT
+
+
+
+
+
 
 
 
@@ -247,72 +280,10 @@ class ContractWatcher {
     async run5mJob() {
         
         try {
-            // //read from blockevents table last 5m of entries (last 25 blocks.)
-            // const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-25);
-            
-            // //get contracts that currently exist in Contracts table from last sql query.
-            // const existingContracts = await api.post('/api/contracts?matching=true', sortedVolume.map(b=>b.contract))
-            // let existingContractsData = []
-            // if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
-            // console.log('matching', existingContracts.data.data.length)
-
-            // //for contracts that don't exist, get their age and add them
-            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            // console.log('newContracts length', newContracts.length)
-            // const postObjects = await Promise.all(newContracts.map(async sym=>{
-            //     const liqAddBlock = await this.getLiqAddBlock(sym.contract)
-            //     await this.getLiqLockBlock(sym);
-            //     let renounceBlock = await this.getRenounceBlock(sym);
-            //     return {
-            //         symbol: sym.symbol,
-            //         contract: sym.contract,
-            //         liqAddBlock,
-            //         volume1m: sym.volume,
-            //         volume5m: sym.volume,
-            //         volume15m: 0,
-            //         volume1h: 0,
-            //         volume1d: 0,
-            //         liqlockBlock: 0,
-            //         renounceBlock
-            //     }
-            // }));
 
 
-            // console.log('got liq add blocks')
-            // await this.postContracts(postObjects);
 
-            
-            // // 4. for each contract that does exist, make a PUT with the 5m volume.
-            // //take sorted volume and sort by "existingContracts"
-            // let putObjects = [];
-            // if (existingContractsData.length) {
 
-            //     putObjects = existingContractsData.map(c=>{
-            //         const { volume: volume5m } = sortedVolume.filter(b=>b.contract == c.contract)[0];
-            //         return {
-            //             volume5m,
-            //             ...c
-            //         }
-
-            //     })
-            //     putObjects = await Promise.all(putObjects.map(async o=>{
-            //         let liqlockBlock = o.liqlockBlock, renounceBlock = o.renounceBlock;
-            //         if (o.liqlockBlock != 0) {
-            //             const liqlockBlock = await this.getLiqLockBlock(o);
-            //         } 
-            //         if (o.renounceBlock != 0) {
-            //             const renounceBlock = await this.getRenounceBlock(o);
-            //         }
-            //         return {
-            //             liqlockBlock,
-            //             renounceBlock,
-            //             ...o
-            //         }
-
-            //     }))
-            //     await this.putContracts(putObjects);
-            // }
-            
             // let allObjects = [...putObjects, postObjects].flat();
             // for (let i in allObjects) {
             //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
