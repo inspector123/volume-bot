@@ -68,7 +68,7 @@ export class LatestBlockWatcher {
                 try {
                     const response = await api.post(`/api/swaps?table=MainSwaps`, [swap])
                 }catch(e) {
-                    console.log(e.response, 'error')
+                    console.log(e.response, 'error', swap)
                 }
             }
         })

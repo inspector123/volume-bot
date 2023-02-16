@@ -76,7 +76,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.sortBySymbol) {
     conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price, sum(IF(isBuy=1,isBuy*usdVolume, 0)) as sumBuys, sum(IF(isBuy=-1, isBuy*usdVolume, 0)) as sumSells FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price, sum(IF(isBuy=1,isBuy*usdVolume, 0)) as sumBuys, sum(IF(isBuy=-1, usdVolume, 0)) as sumSells FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -176,7 +176,7 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
     )
   } else {
     conn.query(
-      "INSERT INTO ContractDetails (symbol, contract, liqAddBlock, liqlockBlock, renounceBlock) VALUES(?)",
+      "INSERT INTO ContractDetails (symbol, contract, liqAddBlock, liqAddTimestamp, liqlockBlock, renounceBlock) VALUES(?)",
       [Object.values(req.body)],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));

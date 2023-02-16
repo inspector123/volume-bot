@@ -37,6 +37,10 @@ class ContractWatcher {
     latestBlockNumber;
     busy;
     blocks = 0;
+    contractsStored5m = [];
+    contractsStored15m = [];
+    contractsStored1h = [];
+    contractsStored1d = [];
 
     constructor(chatId, volumeBotKey, archiveNodeUrl) {
 
@@ -116,7 +120,7 @@ class ContractWatcher {
                 if (shibaEvents.length) {
                     const { blockNumber } =  [shibaPos1, shibaPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
                     const { timestamp } = await this.archiveProvider.getBlock(blockNumber)
-                    return timestamp
+                    return {liqAddBlock : blockNumber, liqAddTimestamp:  timestamp}
                 }
                 if (!shibaEvents.length) {
                     let sushiPos1 = await this.archiveProvider.getLogs({address: sushiFactory1, topics: [[v2_pairCreatedTopic], [contractTopic]], fromBlock});
@@ -125,14 +129,14 @@ class ContractWatcher {
                     if (sushiEvents.length) {
                         const { blockNumber } =  [sushiPos1, sushiPos2].flat().sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
                         const { timestamp } = await this.archiveProvider.getBlock(blockNumber)
-                        return timestamp
+                        return {liqAddBlock : blockNumber, liqAddTimestamp:  timestamp}
                     }
                 }
 
             } else {
                 const { blockNumber } =  v3v2Events.sort(((a,b)=>a.blockNumber-b.blockNumber))[0];
                 const { timestamp } = await this.archiveProvider.getBlock(blockNumber)
-                return timestamp
+                return {liqAddBlock : blockNumber, liqAddTimestamp:  timestamp}
             }
         } catch(e) {
             console.log('error getting add block', e, contract)
@@ -176,19 +180,19 @@ class ContractWatcher {
 
             //read from blockevents table last 1m of entries (last 5 blocks)
             const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-5);
-            console.log(sortedVolume)
+            //console.log(sortedVolume)
             
             //get contracts that currently exist in Contracts table from last sql query.
             const existingContracts = await api.post('/api/contractDetails?matching=true', sortedVolume.map(b=>b.contract))
             let existingContractsData = []
             if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
-            console.log('matching', existingContracts.data.data.length)
+            //console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
             const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
             console.log('newContracts length', newContracts.length)
             const postObjects = await Promise.all(newContracts.map(async sym=>{
-                const liqAddBlock = await this.getLiqAddBlock(sym.contract)
+                const {liqAddBlock, liqAddTimestamp} = (await this.getLiqAddBlock(sym.contract));
                 const liqLockBlock = 0, renounceBlock = 0;
                 // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
                 // let renounceBlock = await this.getRenounceBlock(sym.contract);
@@ -196,6 +200,7 @@ class ContractWatcher {
                     symbol: sym.symbol,
                     contract: sym.contract,
                     liqAddBlock,
+                    liqAddTimestamp,
                     liqLockBlock: liqLockBlock || 0,
                     renounceBlock: renounceBlock || 0
                 }
@@ -226,19 +231,116 @@ class ContractWatcher {
                         volume15m: 0,
                         volume1h: 0,
                         volume1d: 0,
-                        buyRatio1m: (getExistingVolume.sumBuys + getExistingVolume.sumSells) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
+                        buyRatio1m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
                         buyRatio15m: 0,
                         buyRatio1d: 0,
-                        ageInMinutes: 0
+                        ageInMinutes: new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000)
 
                     }
                     contractObjects = [...contractObjects, contractObject]
                 }
             }
-            contractObjects = contractObjects.flat();
+            contractObjects = contractObjects;
+            this.contractsStored5m = [...this.contractsStored5m, contractObjects]
+            console.log('5m', this.contractsStored5m.length)
+            this.contractsStored15m = [...this.contractsStored15m, contractObjects]
+            this.contractsStored1h = [...this.contractsStored1h, contractObjects]
+            this.contractsStored1d = [...this.contractsStored1d, contractObjects]
+            if (this.contractsStored5m.length > 5) {
+                //this.contractsStored5m = this.contractsStored5m.slice(1,)
+                for (let i = 1; i < this.contractsStored5m.length; i++) {
+                    //find matching contract
+                    for (let j = 0; j < this.contractsStored5m[i].length; j++) {
+                        const contractFromPrevBlock = this.contractsStored5m[i-1].filter(c=>c.contract==this.contractsStored5m[i][j].contract);
+                        if (contractFromPrevBlock.length) {
+                            this.contractsStored5m[i][j].volume5m = contractFromPrevBlock[0].volume1m + this.contractsStored5m[i][j].volume1m
+                        }
+                    }
+
+                }
+
+                
+            }
+            if (this.contractsStored15m.length > 15) {
+                //this.contractsStored15m = this.contractsStored15m.slice(1,)
+                for (let i = 1; i < this.contractsStored15m.length; i++) {
+                    //find matching contract
+                    for (let j = 0; j < this.contractsStored15m[i].length; j++) {
+                        const contractFromPrevBlock = this.contractsStored15m[i-1].filter(c=>c.contract==this.contractsStored15m[i][j].contract);
+                        if (contractFromPrevBlock.length) {
+                            this.contractsStored15m[i][j].volume15m = contractFromPrevBlock[0].volume1m + this.contractsStored15m[i][j].volume1m
+                        }
+                    }
+
+                }
+
+                
+            }
+            if (this.contractsStored1h.length > 60) {
+                //this.contractsStored1h = this.contractsStored1h.slice(1,)
+                for (let i = 1; i < this.contractsStored1h.length; i++) {
+                    //find matching contract
+                    for (let j = 0; j < this.contractsStored1h[i].length; j++) {
+                        const contractFromPrevBlock = this.contractsStored1h[i-1].filter(c=>c.contract==this.contractsStored1h[i][j].contract);
+                        if (contractFromPrevBlock.length) {
+                            this.contractsStored1h[i][j].volume1h = contractFromPrevBlock[0].volume1m + this.contractsStored1h[i][j].volume1m
+                        }
+                    }
+
+                }
+
+                
+            }
+            if (this.contractsStored1d.length > 5) {
+                //this.contractsStored1d = this.contractsStored1d.slice(1,)
+                for (let i = 1; i < this.contractsStored1d.length; i++) {
+                    //find matching contract
+                    for (let j = 0; j < this.contractsStored1d[i].length; j++) {
+                        const contractFromPrevBlock = this.contractsStored1d[i-1].filter(c=>c.contract==this.contractsStored1d[i][j].contract);
+                        if (contractFromPrevBlock.length) {
+                            this.contractsStored1d[i][j].volume1d = contractFromPrevBlock[0].volume1m + this.contractsStored1d[i][j].volume1m
+                        }
+                    }
+
+                }
+
+                
+            }
+            try {
+
+                for (let i in contractObjects) {
+                    //find corresponding entry in contractsStored5m
+                    const corresponding5m = this.contractsStored5m[this.contractsStored5m.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
+                //onsole.log(corresponding5m.flat())
+                    //console.log(corresponding5m)
+                    if (corresponding5m.length) {
+                        contractObjects[i].volume5m = corresponding5m[0].volume5m;
+                    }
+                    const corresponding15m = this.contractsStored15m[this.contractsStored15m.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
+                    //" " " contractsStored15m
+                    if (corresponding15m.length) {
+                        contractObjects[i].volume15m = corresponding15m[0].volume15m;
+                    }
+                    const corresponding1h = this.contractsStored1h[this.contractsStored1h.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
+                    //" " " contractsStored1h
+                    if (corresponding1h.length) {
+                        contractObjects[i].volume1h = corresponding1h[0].volume1h;
+                    }
+                    const corresponding1d = this.contractsStored1d[this.contractsStored1d.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
+                    //" " " contractsStored1d
+                    if (corresponding1d.length) {
+                        contractObjects[i].volume1d = corresponding1d[0].volume1d;
+                    }
+
+                }
+            } catch(e) {
+                console.log('e')
+            }
+
+
 
             try {
-                await api.post(`api/contracts`, contractObjects)
+                await api.post(`/api/contracts`, contractObjects)
             } catch(e) {
                 console.log(e.response.data)
             }
@@ -452,7 +554,7 @@ class ContractWatcher {
                     const response = await api.post('/api/contractDetails', contractsArray[i])
                 }
                 catch(e) {
-                    console.log(e.response)
+                    console.log(e.response.data, contractsArray[i])
                     return;
                 }
             }
