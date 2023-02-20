@@ -37,16 +37,10 @@ class ContractWatcher {
     latestBlockNumber;
     busy;
     blocks = 0;
-    contractsStored5m = [];
-    contractsStored15m = [];
-    contractsStored1h = [];
-    contractsStored1d = [];
 
     constructor(chatId, volumeBotKey, archiveNodeUrl) {
 
         this.chatId = chatId;
-        this.volumeBot = new Telegraf(volumeBotKey);
-        this.volumeBot.catch(e=>console.log(e))
         this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
         this.httpProvider = this.archiveProvider;
         this.archiveNodeUrl = archiveNodeUrl;
@@ -60,44 +54,34 @@ class ContractWatcher {
 
 
     async node() {
-        this.httpProvider.on('block', (latestBlockNumber)=>{
+        this.httpProvider.on('block', async (latestBlockNumber)=>{
             this.latestBlockNumber = latestBlockNumber;
             console.log('latest block: ', latestBlockNumber)
             if (this.blocks == 0) this.run1mJob();
             this.blocks++;
             if (!(this.blocks % 5)) {
                 console.log('running 1m job')
-                this.run1mJob();
+                await this.run1mJob();
             }
-            // if (!(this.blocks % 25)) {
-            //     console.log('running 5m job')
-            //     this.run5mJob();
-            // }
-            // if (!(this.blocks % 75)) {
-            //     console.log('running 15m job')
-            //     this.run15mJob();
-            // }
+            if (!(this.blocks % 25)) {
+                console.log('running 5m job')
+                await this.run5mJob();
+            }
+            if (!(this.blocks % 75)) {
+                console.log('running 15m job')
+                await this.run15mJob();
+            }
+            if (!(this.blocks % 300)) {
+                console.log('running 1h job')
+                await this.run1hJob();
+            }
+            if (!(this.blocks % 7200)) {
+                console.log('running 1d job')
+                await this.run1dJob();
+            }
 
 
         })
-        // this.httpProvider.on({topics: [ownershipTransferredTopic]}, async (log)=>{
-        //     if (!log.topics.includes(deadAddressTopicAddress))
-        //         return;
-        //     if (log.topics[2]!=deadAddressTopicAddress) console.log('not in position 2');
-        //     else {
-        //         console.log('renounce')
-        //         console.log(contract.data.data)
-        //      const contract = await api.put(`/api/contracts`, { renounceBlock: log.blockNumber });
-        //        }
-
-
-        // })
-
-        // const log = await this.httpProvider.getLogs({topics: [[ownershipTransferredTopic]], fromBlock:16451383, toBlock:16451383})
-        // console.log(log)
-
-        //this.httpProvider.on()
-        
 
         
     }
@@ -192,7 +176,12 @@ class ContractWatcher {
             const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
             console.log('newContracts length', newContracts.length)
             const postObjects = await Promise.all(newContracts.map(async sym=>{
-                const {liqAddBlock, liqAddTimestamp} = (await this.getLiqAddBlock(sym.contract));
+                let liqAddBlock = 0, liqAddTimestamp = 0;
+                const response =  await this.getLiqAddBlock(sym.contract);
+                if (response.liqAddBlock && response.liqAddTimestamp) {
+                    liqAddBlock = response.liqAddBlock;
+                    liqAddTimestamp = response.liqAddTimestamp;
+                }
                 const liqLockBlock = 0, renounceBlock = 0;
                 // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
                 // let renounceBlock = await this.getRenounceBlock(sym.contract);
@@ -227,120 +216,17 @@ class ContractWatcher {
                         marketCap: getExistingVolume.marketCap,
                         price: getExistingVolume.price,
                         volume1m: getExistingVolume.volume,
-                        volume5m: 0,
-                        volume15m: 0,
-                        volume1h: 0,
-                        volume1d: 0,
                         buyRatio1m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
-                        buyRatio15m: 0,
-                        buyRatio1d: 0,
-                        ageInMinutes: new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000)
+                        ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
 
                     }
                     contractObjects = [...contractObjects, contractObject]
                 }
             }
-            contractObjects = contractObjects;
-            this.contractsStored5m = [...this.contractsStored5m, contractObjects]
-            console.log('5m', this.contractsStored5m.length)
-            this.contractsStored15m = [...this.contractsStored15m, contractObjects]
-            this.contractsStored1h = [...this.contractsStored1h, contractObjects]
-            this.contractsStored1d = [...this.contractsStored1d, contractObjects]
-            if (this.contractsStored5m.length > 5) {
-                //this.contractsStored5m = this.contractsStored5m.slice(1,)
-                for (let i = 1; i < this.contractsStored5m.length; i++) {
-                    //find matching contract
-                    for (let j = 0; j < this.contractsStored5m[i].length; j++) {
-                        const contractFromPrevBlock = this.contractsStored5m[i-1].filter(c=>c.contract==this.contractsStored5m[i][j].contract);
-                        if (contractFromPrevBlock.length) {
-                            this.contractsStored5m[i][j].volume5m = contractFromPrevBlock[0].volume1m + this.contractsStored5m[i][j].volume1m
-                        }
-                    }
-
-                }
-
-                
-            }
-            if (this.contractsStored15m.length > 15) {
-                //this.contractsStored15m = this.contractsStored15m.slice(1,)
-                for (let i = 1; i < this.contractsStored15m.length; i++) {
-                    //find matching contract
-                    for (let j = 0; j < this.contractsStored15m[i].length; j++) {
-                        const contractFromPrevBlock = this.contractsStored15m[i-1].filter(c=>c.contract==this.contractsStored15m[i][j].contract);
-                        if (contractFromPrevBlock.length) {
-                            this.contractsStored15m[i][j].volume15m = contractFromPrevBlock[0].volume1m + this.contractsStored15m[i][j].volume1m
-                        }
-                    }
-
-                }
-
-                
-            }
-            if (this.contractsStored1h.length > 60) {
-                //this.contractsStored1h = this.contractsStored1h.slice(1,)
-                for (let i = 1; i < this.contractsStored1h.length; i++) {
-                    //find matching contract
-                    for (let j = 0; j < this.contractsStored1h[i].length; j++) {
-                        const contractFromPrevBlock = this.contractsStored1h[i-1].filter(c=>c.contract==this.contractsStored1h[i][j].contract);
-                        if (contractFromPrevBlock.length) {
-                            this.contractsStored1h[i][j].volume1h = contractFromPrevBlock[0].volume1m + this.contractsStored1h[i][j].volume1m
-                        }
-                    }
-
-                }
-
-                
-            }
-            if (this.contractsStored1d.length > 5) {
-                //this.contractsStored1d = this.contractsStored1d.slice(1,)
-                for (let i = 1; i < this.contractsStored1d.length; i++) {
-                    //find matching contract
-                    for (let j = 0; j < this.contractsStored1d[i].length; j++) {
-                        const contractFromPrevBlock = this.contractsStored1d[i-1].filter(c=>c.contract==this.contractsStored1d[i][j].contract);
-                        if (contractFromPrevBlock.length) {
-                            this.contractsStored1d[i][j].volume1d = contractFromPrevBlock[0].volume1m + this.contractsStored1d[i][j].volume1m
-                        }
-                    }
-
-                }
-
-                
-            }
-            try {
-
-                for (let i in contractObjects) {
-                    //find corresponding entry in contractsStored5m
-                    const corresponding5m = this.contractsStored5m[this.contractsStored5m.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
-                //onsole.log(corresponding5m.flat())
-                    //console.log(corresponding5m)
-                    if (corresponding5m.length) {
-                        contractObjects[i].volume5m = corresponding5m[0].volume5m;
-                    }
-                    const corresponding15m = this.contractsStored15m[this.contractsStored15m.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
-                    //" " " contractsStored15m
-                    if (corresponding15m.length) {
-                        contractObjects[i].volume15m = corresponding15m[0].volume15m;
-                    }
-                    const corresponding1h = this.contractsStored1h[this.contractsStored1h.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
-                    //" " " contractsStored1h
-                    if (corresponding1h.length) {
-                        contractObjects[i].volume1h = corresponding1h[0].volume1h;
-                    }
-                    const corresponding1d = this.contractsStored1d[this.contractsStored1d.length-1].filter(c=>c.blockNumber==contractObjects[i].blockNumber&&c.contract==contractObjects[i].contract).flat();
-                    //" " " contractsStored1d
-                    if (corresponding1d.length) {
-                        contractObjects[i].volume1d = corresponding1d[0].volume1d;
-                    }
-
-                }
-            } catch(e) {
-                console.log('e')
-            }
-
-
+            
 
             try {
-                await api.post(`/api/contracts`, contractObjects)
+                await api.post(`/api/contracts?table=Contracts1m&volume=volume1m&buyRatio=buyRatio1m`, contractObjects)
             } catch(e) {
                 console.log(e.response.data)
             }
@@ -348,11 +234,398 @@ class ContractWatcher {
 
 
 
-            //PUT
+
+            // //ALERTS FOR 5M
+            // let allObjects = [...putObjects, postObjects].flat();
+            // for (let i in allObjects) {
+            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
+            //     if (allObjects[i].volume5m > 10000 && timeSinceAdd < 30) {
+            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
+            //     }
+            // }
+
+            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
+
+
+
+            //
+        } catch(e) {
+            console.log(e)
+        }
+
+    }
+
+    async run5mJob() {
+        
+        try {
+            //1. Update contracts table with new contracts.
+
+
+            //read from blockevents table last 1m of entries (last 5 blocks)
+            const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-25);
+            //console.log(sortedVolume)
+            
+            //get contracts that currently exist in Contracts table from last sql query.
+            const existingContracts = await api.post('/api/contractDetails?matching=true', sortedVolume.map(b=>b.contract))
+            let existingContractsData = []
+            if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
+            //console.log('matching', existingContracts.data.data.length)
+
+            //for contracts that don't exist, get their age and add them
+            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            console.log('newContracts length', newContracts.length)
+            const postObjects = await Promise.all(newContracts.map(async sym=>{
+                let liqAddBlock = 0, liqAddTimestamp = 0;
+                const response =  await this.getLiqAddBlock(sym.contract);
+                if (response.liqAddBlock && response.liqAddTimestamp) {
+                    liqAddBlock = response.liqAddBlock;
+                    liqAddTimestamp = response.liqAddTimestamp;
+                }
+                const liqLockBlock = 0, renounceBlock = 0;
+                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+                // let renounceBlock = await this.getRenounceBlock(sym.contract);
+                return {
+                    symbol: sym.symbol,
+                    contract: sym.contract,
+                    liqAddBlock,
+                    liqAddTimestamp,
+                    liqLockBlock: liqLockBlock || 0,
+                    renounceBlock: renounceBlock || 0
+                }
+            }));
+
+
+            console.log('got liq add blocks')
+            await this.postContracts(postObjects);
+
+            //STEP 2: add to time contract table.
+
+
+            //existingContracts and newContracts with postObjects
+            const allContracts = [...existingContractsData, ...postObjects].flat();
+            let contractObjects = []
+            for (let i in allContracts) {
+                const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
+                if (getExistingVolume) {
+                    let contractObject = {
+                        contract: getExistingVolume.contract,
+                        symbol: getExistingVolume.symbol,
+                        dateTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        blockNumber: this.latestBlockNumber,
+                        marketCap: getExistingVolume.marketCap,
+                        price: getExistingVolume.price,
+                        volume5m: getExistingVolume.volume,
+                        buyRatio5m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
+                        ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
+
+                    }
+                    contractObjects = [...contractObjects, contractObject]
+                }
+            }
+            
+
+            try {
+                await api.post(`/api/contracts?table=Contracts5m&volume=volume5m&buyRatio=buyRatio5m`, contractObjects)
+            } catch(e) {
+                console.log(e.response.data)
+            }
 
 
 
 
+
+            // //ALERTS FOR 5M
+            // let allObjects = [...putObjects, postObjects].flat();
+            // for (let i in allObjects) {
+            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
+            //     if (allObjects[i].volume5m > 10000 && timeSinceAdd < 30) {
+            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
+            //     }
+            // }
+
+            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
+
+
+
+            //
+        } catch(e) {
+            console.log(e)
+        }
+
+    }
+
+    async run15mJob() {
+        
+        try {
+            //1. Update contracts table with new contracts.
+
+
+            //read from blockevents table last 1m of entries (last 5 blocks)
+            const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-75);
+            //console.log(sortedVolume)
+            
+            //get contracts that currently exist in Contracts table from last sql query.
+            const existingContracts = await api.post('/api/contractDetails?matching=true', sortedVolume.map(b=>b.contract))
+            let existingContractsData = []
+            if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
+            //console.log('matching', existingContracts.data.data.length)
+
+            //for contracts that don't exist, get their age and add them
+            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            console.log('newContracts length', newContracts.length)
+            const postObjects = await Promise.all(newContracts.map(async sym=>{
+                let liqAddBlock = 0, liqAddTimestamp = 0;
+                const response =  await this.getLiqAddBlock(sym.contract);
+                if (response.liqAddBlock && response.liqAddTimestamp) {
+                    liqAddBlock = response.liqAddBlock;
+                    liqAddTimestamp = response.liqAddTimestamp;
+                }
+                const liqLockBlock = 0, renounceBlock = 0;
+                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+                // let renounceBlock = await this.getRenounceBlock(sym.contract);
+                return {
+                    symbol: sym.symbol,
+                    contract: sym.contract,
+                    liqAddBlock,
+                    liqAddTimestamp,
+                    liqLockBlock: liqLockBlock || 0,
+                    renounceBlock: renounceBlock || 0
+                }
+            }));
+
+
+            console.log('got liq add blocks')
+            await this.postContracts(postObjects);
+
+            //STEP 2: add to time contract table.
+
+
+            //existingContracts and newContracts with postObjects
+            const allContracts = [...existingContractsData, ...postObjects].flat();
+            let contractObjects = []
+            for (let i in allContracts) {
+                const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
+                if (getExistingVolume) {
+                    let contractObject = {
+                        contract: getExistingVolume.contract,
+                        symbol: getExistingVolume.symbol,
+                        dateTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        blockNumber: this.latestBlockNumber,
+                        marketCap: getExistingVolume.marketCap,
+                        price: getExistingVolume.price,
+                        volume15m: getExistingVolume.volume,
+                        buyRatio15m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
+                        ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
+
+                    }
+                    contractObjects = [...contractObjects, contractObject]
+                }
+            }
+            
+
+            try {
+                await api.post(`/api/contracts?table=Contracts15m&volume=volume15m&buyRatio=buyRatio15m`, contractObjects)
+            } catch(e) {
+                console.log(e.response.data)
+            }
+
+
+
+
+
+            // //ALERTS FOR 5M
+            // let allObjects = [...putObjects, postObjects].flat();
+            // for (let i in allObjects) {
+            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
+            //     if (allObjects[i].volume5m > 10000 && timeSinceAdd < 30) {
+            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
+            //     }
+            // }
+
+            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
+
+
+
+            //
+        } catch(e) {
+            console.log(e)
+        }
+
+    }
+
+    async run1hJob() {
+        
+        try {
+            //1. Update contracts table with new contracts.
+
+
+            //read from blockevents table last 1m of entries (last 5 blocks)
+            const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-300);
+            //console.log(sortedVolume)
+            
+            //get contracts that currently exist in Contracts table from last sql query.
+            const existingContracts = await api.post('/api/contractDetails?matching=true', sortedVolume.map(b=>b.contract))
+            let existingContractsData = []
+            if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
+            //console.log('matching', existingContracts.data.data.length)
+
+            //for contracts that don't exist, get their age and add them
+            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            console.log('newContracts length', newContracts.length)
+            const postObjects = await Promise.all(newContracts.map(async sym=>{
+                let liqAddBlock = 0, liqAddTimestamp = 0;
+                const response =  await this.getLiqAddBlock(sym.contract);
+                if (response.liqAddBlock && response.liqAddTimestamp) {
+                    liqAddBlock = response.liqAddBlock;
+                    liqAddTimestamp = response.liqAddTimestamp;
+                }
+                const liqLockBlock = 0, renounceBlock = 0;
+                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+                // let renounceBlock = await this.getRenounceBlock(sym.contract);
+                return {
+                    symbol: sym.symbol,
+                    contract: sym.contract,
+                    liqAddBlock,
+                    liqAddTimestamp,
+                    liqLockBlock: liqLockBlock || 0,
+                    renounceBlock: renounceBlock || 0
+                }
+            }));
+
+
+            console.log('got liq add blocks')
+            await this.postContracts(postObjects);
+
+            //STEP 2: add to time contract table.
+
+
+            //existingContracts and newContracts with postObjects
+            const allContracts = [...existingContractsData, ...postObjects].flat();
+            let contractObjects = []
+            for (let i in allContracts) {
+                const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
+                if (getExistingVolume) {
+                    let contractObject = {
+                        contract: getExistingVolume.contract,
+                        symbol: getExistingVolume.symbol,
+                        dateTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        blockNumber: this.latestBlockNumber,
+                        marketCap: getExistingVolume.marketCap,
+                        price: getExistingVolume.price,
+                        volume1h: getExistingVolume.volume,
+                        buyRatio1h: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
+                        ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
+
+                    }
+                    contractObjects = [...contractObjects, contractObject]
+                }
+            }
+            
+
+            try {
+                await api.post(`/api/contracts?table=Contracts1h&volume=volume1h&buyRatio=buyRatio1h`, contractObjects)
+            } catch(e) {
+                console.log(e.response.data)
+            }
+
+
+
+
+
+            // //ALERTS FOR 5M
+            // let allObjects = [...putObjects, postObjects].flat();
+            // for (let i in allObjects) {
+            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
+            //     if (allObjects[i].volume5m > 10000 && timeSinceAdd < 30) {
+            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
+            //     }
+            // }
+
+            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
+
+
+
+            //
+        } catch(e) {
+            console.log(e)
+        }
+
+    }
+
+    async run1dJob() {
+        
+        try {
+            //1. Update contracts table with new contracts.
+
+
+            //read from blockevents table last 1m of entries (last 5 blocks)
+            const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-7200);
+            //console.log(sortedVolume)
+            
+            //get contracts that currently exist in Contracts table from last sql query.
+            const existingContracts = await api.post('/api/contractDetails?matching=true', sortedVolume.map(b=>b.contract))
+            let existingContractsData = []
+            if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
+            //console.log('matching', existingContracts.data.data.length)
+
+            //for contracts that don't exist, get their age and add them
+            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            console.log('newContracts length', newContracts.length)
+            const postObjects = await Promise.all(newContracts.map(async sym=>{
+                let liqAddBlock = 0, liqAddTimestamp = 0;
+                const response =  await this.getLiqAddBlock(sym.contract);
+                if (response.liqAddBlock && response.liqAddTimestamp) {
+                    liqAddBlock = response.liqAddBlock;
+                    liqAddTimestamp = response.liqAddTimestamp;
+                }
+                const liqLockBlock = 0, renounceBlock = 0;
+                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+                // let renounceBlock = await this.getRenounceBlock(sym.contract);
+                return {
+                    symbol: sym.symbol,
+                    contract: sym.contract,
+                    liqAddBlock,
+                    liqAddTimestamp,
+                    liqLockBlock: liqLockBlock || 0,
+                    renounceBlock: renounceBlock || 0
+                }
+            }));
+
+
+            console.log('got liq add blocks')
+            await this.postContracts(postObjects);
+
+            //STEP 2: add to time contract table.
+
+
+            //existingContracts and newContracts with postObjects
+            const allContracts = [...existingContractsData, ...postObjects].flat();
+            let contractObjects = []
+            for (let i in allContracts) {
+                const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
+                if (getExistingVolume) {
+                    let contractObject = {
+                        contract: getExistingVolume.contract,
+                        symbol: getExistingVolume.symbol,
+                        dateTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        blockNumber: this.latestBlockNumber,
+                        marketCap: getExistingVolume.marketCap,
+                        price: getExistingVolume.price,
+                        volume1d: getExistingVolume.volume,
+                        buyRatio1d: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
+                        ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
+
+                    }
+                    contractObjects = [...contractObjects, contractObject]
+                }
+            }
+            
+
+            try {
+                await api.post(`/api/contracts?table=Contracts1d&volume=volume1d&buyRatio=buyRatio1d`, contractObjects)
+            } catch(e) {
+                console.log(e.response.data)
+            }
 
 
 
@@ -379,172 +652,6 @@ class ContractWatcher {
     }
 
 
-    async run5mJob() {
-        
-        try {
-
-
-
-
-            // let allObjects = [...putObjects, postObjects].flat();
-            // for (let i in allObjects) {
-            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
-            //     if (allObjects[i].volume5m > 10000 && timeSinceAdd < 30) {
-            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
-            //     }
-            // }
-
-            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
-
-
-
-            //
-        } catch(e) {
-            console.log(e)
-        }
-
-    }
-    
-    async run15mJob() {
-        try {
-            // //read from blockevents table last 5m of entries (last 25 blocks.)
-            // const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-75);
-            
-            // //get contracts that currently exist in Contracts table from last sql query.
-            // const existingContracts = await api.post('/api/contracts?matching=true', sortedVolume.map(b=>b.contract))
-            // let existingContractsData = []
-            // if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
-            // console.log('matching', existingContracts.data.data.length)
-
-            // //for contracts that don't exist, get their age and add them
-            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            // console.log('newContracts length', newContracts.length)
-            // const postObjects = await Promise.all(newContracts.map(async sym=>{
-            //     const liqAddBlock = await this.getLiqAddBlock(sym.contract)
-            //     await this.getLiqLockBlock(sym);
-            //     let renounceBlock = await this.getRenounceBlock(sym);
-            //     return {
-            //         symbol: sym.symbol,
-            //         contract: sym.contract,
-            //         liqAddBlock,
-            //         volume5m: 0,
-            //         volume15m: sym.volume,
-            //         volume1h: 0,
-            //         volume1d: 0,
-            //         liqlockBlock: 0,
-            //         renounceBlock
-            //     }
-            // }));
-
-
-            // console.log('got liq add blocks')
-            // await this.postContracts(postObjects);
-
-            
-            // // 4. for each contract that does exist, make a PUT with the 5m volume.
-            // //take sorted volume and sort by "existingContracts"
-            // let putObjects = [];
-            // if (existingContractsData.length) {
-
-            //     putObjects = existingContractsData.map(c=>{
-            //         const { volume: volume15m } = sortedVolume.filter(b=>b.contract == c.contract)[0];
-            //         return {
-            //             volume15m,
-            //             ...c
-            //         }
-
-            //     })
-            //     await this.putContracts(putObjects);
-            // }
-            
-            // let allObjects = [...putObjects, postObjects].flat();
-            // for (let i in allObjects) {
-            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
-            //     if (allObjects[i].volume15m > 10000 && timeSinceAdd < 30) {
-            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
-            //     }
-            // }
-
-            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
-
-
-
-            //
-        } catch(e) {
-            console.log(e)
-        }
-    }
-
-    async run1DJob() {
-        try {
-            // //read from blockevents table last 5m of entries (last 25 blocks.)
-            // const sortedVolume = await this.sortedSpecifyBlockNumber(this.latestBlockNumber-7200);
-            
-            // //get contracts that currently exist in Contracts table from last sql query.
-            // const existingContracts = await api.post('/api/contracts?matching=true', sortedVolume.map(b=>b.contract))
-            // let existingContractsData = []
-            // if (existingContracts.data.data.length) existingContractsData = existingContracts.data.data;
-            // console.log('matching', existingContracts.data.data.length)
-
-            // //for contracts that don't exist, get their age and add them
-            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            // console.log('newContracts length', newContracts.length)
-            // const postObjects = await Promise.all(newContracts.map(async sym=>{
-            //     const liqAddBlock = await this.getLiqAddBlock(sym.contract)
-            //     await this.getLiqLockBlock(sym);
-            //     let renounceBlock = await this.getRenounceBlock(sym);
-            //     return {
-            //         symbol: sym.symbol,
-            //         contract: sym.contract,
-            //         liqAddBlock,
-            //         volume5m: 0,
-            //         volume15m: sym.volume,
-            //         volume1h: 0,
-            //         volume1d: 0,
-            //         liqlockBlock: 0,
-            //         renounceBlock
-            //     }
-            // }));
-
-
-            // console.log('got liq add blocks')
-            // await this.postContracts(postObjects);
-
-            
-            // // 4. for each contract that does exist, make a PUT with the 5m volume.
-            // //take sorted volume and sort by "existingContracts"
-            // let putObjects = [];
-            // if (existingContractsData.length) {
-
-            //     putObjects = existingContractsData.map(c=>{
-            //         const { volume: volume15m } = sortedVolume.filter(b=>b.contract == c.contract)[0];
-            //         return {
-            //             volume15m,
-            //             ...c
-            //         }
-
-            //     })
-            //     await this.putContracts(putObjects);
-            // }
-            
-            // let allObjects = [...putObjects, postObjects].flat();
-            // for (let i in allObjects) {
-            //     let timeSinceAdd = (Date.now()/1000 - allObjects[i].liqAddBlock)/60
-            //     if (allObjects[i].volume15m > 10000 && timeSinceAdd < 30) {
-            //         this.volumeBot.telegram.sendMessage(this.chatId, `volume alert on ${allObjects[i].symbol}, contract ${allObjects[i].contract}, volume5m ${allObjects[i].volume5m}`)
-            //     }
-            // }
-
-            // // 5. Telegram bot message: if volume is greater than 10k in last 5 minutes and age is less than 30 minutes, send message.
-
-
-
-            //
-        } catch(e) {
-            console.log(e)
-        }
-    }
-
     //next is run15mjob
 
     async postContracts(contractsArray) {
@@ -564,7 +671,7 @@ class ContractWatcher {
     // async putContracts(array) {
     //     for (let i in array) {
     //         try {
-    //             const response = await api.put(`/api/contracts`, array[i])
+    //             const response = await api.put(`/api/contracts?table=Contracts1m`, array[i])
     //         } catch(e) {
     //             console.log('error putting', e.response?.status, e.response?.data)
     //         }
@@ -574,89 +681,89 @@ class ContractWatcher {
 
     setUpVolumeBot() {
 
-        this.volumeBot.command('run5m', async ()=>{
-            this.volumeBot.telegram.sendMessage(this.chatId, 'running 5m Job')
-            this.run5mJob();
-        })
+        // this.volumeBot.command('run5m', async ()=>{
+        //     this.volumeBot.telegram.sendMessage(this.chatId, 'running 5m Job')
+        //     this.run5mJob();
+        // })
 
-        this.volumeBot.command('run1m', async ()=>{
-            this.volumeBot.telegram.sendMessage(this.chatId, 'running 1m Job')
-            this.run1mJob();
-        })
+        // this.volumeBot.command('run1m', async ()=>{
+        //     this.volumeBot.telegram.sendMessage(this.chatId, 'running 1m Job')
+        //     this.run1mJob();
+        // })
 
 
         
 
 
 
-        this.volumeBot.command('printout', (ctx)=> {
-                const messageText = '/printout ';
-                this.volumeBot.telegram.sendMessage(this.chatId, 'test');
+        // this.volumeBot.command('printout', (ctx)=> {
+        //         const messageText = '/printout ';
+        //         this.volumeBot.telegram.sendMessage(this.chatId, 'test');
                 
-                const replacedText = ctx.message.text.replace(messageText, '')
-                console.log(replacedText)
+        //         const replacedText = ctx.message.text.replace(messageText, '')
+        //         console.log(replacedText)
             
-        })
+        // })
 
 
 
-        this.volumeBot.command('reset', ()=>{
-            this.gettingPrintout = false;
-            this.busy = false;
-        })
+        // this.volumeBot.command('reset', ()=>{
+        //     this.gettingPrintout = false;
+        //     this.busy = false;
+        // })
 
-        this.volumeBot.command('sortedmanual', async (ctx) => {
-            try {
-                this.volumeBot.telegram.sendMessage(this.chatId, 'this command is disabled')
-                // const messageText = '/sortedmanual ';
-                // this.volumeBot.telegram.sendMessage(this.chatId, 'test');
+        // this.volumeBot.command('sortedmanual', async (ctx) => {
+        //     try {
+        //         this.volumeBot.telegram.sendMessage(this.chatId, 'this command is disabled')
+        //         // const messageText = '/sortedmanual ';
+        //         // this.volumeBot.telegram.sendMessage(this.chatId, 'test');
                 
-                // const replacedText = ctx.message.text.replace("/sortedmanual ", ' ')
-                // if (parseInt(replacedText) < 100000) {
-                //     const response = await this.getFromBlock(replacedText)
-                //     this.sortOutput(response)
-                // } else {
-                //     this.volumeBot.telegram.sendMessage(this.chatId, `error processing, non number or bad number given`)
-                // }
-            } catch(e) {
-                this.volumeBot.telegram.sendMessage(this.chatId, `error try again`)
-            }
-        })
+        //         // const replacedText = ctx.message.text.replace("/sortedmanual ", ' ')
+        //         // if (parseInt(replacedText) < 100000) {
+        //         //     const response = await this.getFromBlock(replacedText)
+        //         //     this.sortOutput(response)
+        //         // } else {
+        //         //     this.volumeBot.telegram.sendMessage(this.chatId, `error processing, non number or bad number given`)
+        //         // }
+        //     } catch(e) {
+        //         this.volumeBot.telegram.sendMessage(this.chatId, `error try again`)
+        //     }
+        // })
 
-        this.volumeBot.command('sorted', async (ctx) => {
-            try {
-                const messageText = '/sorted ';
-                this.volumeBot.telegram.sendMessage(this.chatId, 'processing');
+        // this.volumeBot.command('sorted', async (ctx) => {
+        //     try {
+        //         const messageText = '/sorted ';
+        //         this.volumeBot.telegram.sendMessage(this.chatId, 'processing');
                 
-                const replacedText = ctx.message.text.replace("/sorted ", '')
-                if (parseInt(replacedText) < 100000) {
-                    const response = await this.sortedSpecifyBlockNumber(this.currentBlock - replacedText)
-                    if (response.length > 50) {
-                        for (let i = 0; i<response.length; i+50) {
-                            const end = i+50 > response.length ? response.length : i+50;
-                            const start = end-49
-                            this.volumeBot.telegram.sendMessage(this.chatId, JSON.stringify(response.data.data.slice(start,end)))
-                        }
-                    } else {
-                        this.volumeBot.telegram.sendMessage(this.chatId, `${JSON.stringify(response)}`)
-                    }
+        //         const replacedText = ctx.message.text.replace("/sorted ", '')
+        //         if (parseInt(replacedText) < 100000) {
+        //             const response = await this.sortedSpecifyBlockNumber(this.currentBlock - replacedText)
+        //             if (response.length > 50) {
+        //                 for (let i = 0; i<response.length; i+50) {
+        //                     const end = i+50 > response.length ? response.length : i+50;
+        //                     const start = end-49
+        //                     this.volumeBot.telegram.sendMessage(this.chatId, JSON.stringify(response.data.data.slice(start,end)))
+        //                 }
+        //             } else {
+        //                 this.volumeBot.telegram.sendMessage(this.chatId, `${JSON.stringify(response)}`)
+        //             }
                     
-                    // if (response.length < 50) {
-                    //    
-                    // } else {
-                    //     this.volumeBot.telegram.sendMessage(this.chatId, `${JSON.stringify(response.slice(0,50))}`)
-                    // }
+        //             // if (response.length < 50) {
+        //             //    
+        //             // } else {
+        //             //     this.volumeBot.telegram.sendMessage(this.chatId, `${JSON.stringify(response.slice(0,50))}`)
+        //             // }
 
-                } else {
-                    this.volumeBot.telegram.sendMessage(this.chatId, `error processing, non number or bad number given`)
-                }
-                return;
-            } catch(e) {
-                this.volumeBot.telegram.sendMessage(this.chatId, `error try again`)
-            }
-        })
+        //         } else {
+        //             this.volumeBot.telegram.sendMessage(this.chatId, `error processing, non number or bad number given`)
+        //         }
+        //         return;
+        //     } catch(e) {
+        //         this.volumeBot.telegram.sendMessage(this.chatId, `error try again`)
+        //     }
+        // })
         
-        this.volumeBot.launch();
+        // this.volumeBot.launch();
     }
 
     async getBasicPrintout(time) {

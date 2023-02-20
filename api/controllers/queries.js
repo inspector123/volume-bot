@@ -193,8 +193,8 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
 //or just have topics take care of that. but right now, i dont know about that.
 
 export const createContracts = async(req, res, next) => {
-  if (!req.body) return next(new AppError("No form data found", 404));
-  conn.query(`INSERT INTO Contracts (contract,symbol,dateTime, blockNumber, marketCap,price,volume1m,volume5m,volume15m,volume1h,volume1d,buyRatio1m,buyRatio15m,buyRatio1d,ageInMinutes) VALUES(?);`.repeat(req.body.length)
+  if (!req.query.table) return next(new AppError("No table provided", 404));
+  conn.query(`INSERT INTO ${req.query.table} (contract,symbol,dateTime, blockNumber, marketCap,price,${req.query.volume},${req.query.buyRatio},ageInMinutes) VALUES(?);`.repeat(req.body.length)
     ,req.body.map(b=>Object.values(b)), function (err, data, fields) { if (err) return next(new AppError(err, 500));
     res.status(201).json({
       status: "success",
@@ -204,9 +204,98 @@ export const createContracts = async(req, res, next) => {
   
 }
 
-export const getContractsByDate = async (req,res,next) => {
+export const getContractsTablesVolume = async (req,res,next) => {
+  console.log(req.query)
+  if (!req.query.minutes) {
+    return next(new AppError("No minutes query found", 404));
+  }
+  if (!req.query.marketCap) {
+    return next(new AppError("No marketCap query found", 404));
+  }
+  // if (!req.query.table) {
+  //   return next(new AppError("No minutes query found", 404));
+  // }
+  let query;
+  switch(req.query.minutes) {
+    case '1440':
+      query=`select 
+      symbol, marketCap, volume1d, 
+      blockNumber, ageInMinutes, dateTime
+    
+      from 
+        Contracts1d 
+      where 
+        marketCap<${req.query.marketCap}  and blockNumber=(select max(blockNumber) from Contracts1d)
+      order by dateTime, volume15m, ageInMinutes desc;`
+      break;
+    case '60':
+      query=`select 
+      symbol, marketCap, volume1h, 
+      blockNumber, ageInMinutes, dateTime
+    
+      from 
+        Contracts1h 
+      where 
+        marketCap<${req.query.marketCap}  and blockNumber=(select max(blockNumber) from Contracts1h)
+      order by dateTime, volume1h, ageInMinutes desc;`
+      break;
+    case '15':
+      query=`select 
+      symbol, marketCap, volume15m, ageInMinutes
+    
+      from 
+        Contracts15m 
+      where 
+        marketCap<${req.query.marketCap}  and blockNumber=(select max(blockNumber) from Contracts15m)
+      order by dateTime, volume15m, ageInMinutes desc;`
+      break;
+    case '5':
+      query=`
+        select 
+        symbol, marketCap, volume5m as volume, 
+        ageInMinutes
+      
+        from 
+          Contracts1m 
+        where 
+          marketCap<${req.query.marketCap} and blockNumber=(select max(blockNumber) from Contracts5m)
+        order by dateTime, volume, ageInMinutes desc;`;
+      break;
+    case '1':
+      query=`select
+        symbol, marketCap, volume1m, 
+        ageInMinutes
+      
+        from 
+          Contracts1m 
+        where 
+          marketCap<${req.query.marketCap} and blockNumber=(select max(blockNumber) from Contracts1m)
+        order by volume1m, ageInMinutes desc;
+      `;
+      break;
+    default: 
+        query=`select 
+        symbol, marketCap, volume1m, 
+        blockNumber, ageInMinutes, dateTime
+      
+        from Contracts1m 
+        order by dateTime, volume1m, ageInMinutes desc;
+      `    
+      break;
+  }
+  query = query.replace(/^\s+|\s+$/gm, '').split('\n').join(' ')
+  console.log(query);
 
+  conn.query(query, function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
 }
+
 
 // export const updateContract = (req, res, next) => {
 //   if (!req.body.contract) {
@@ -441,23 +530,75 @@ renounceBlock double,
 PRIMARY KEY(id)
   );
 
-      CREATE TABLE Contracts(id int NOT NULL AUTO_INCREMENT,
-        contract varchar(50),
-        symbol varchar(50),
-        dateTime DATETIME, 
-        marketCap double,
-        price double,
-        volume1m double,
-        volume5m double,
-        volume15m double,
-        volume1h double,
-        volume1d double,
-        buyRatio1m double,
-        buyRatio15m double,
-        buyRatio1d double,
-        ageInMinutes double,
-        PRIMARY KEY(id)
-          );
+CREATE TABLE Contracts1m(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  volume1m double,
+  buyRatio1m double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+
+CREATE TABLE Contracts5m(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  volume5m double,
+  buyRatio5m double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+CREATE TABLE Contracts15m(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  volume15m double,
+  buyRatio15m double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+
+CREATE TABLE Contracts1h(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME, 
+  blockNumber double,
+  marketCap double,
+  price double,
+  volume1h double,
+  buyRatio1h double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+
+CREATE TABLE Contracts1d(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  volume1d double,
+  buyRatio1d double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+    
 
 
 

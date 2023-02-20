@@ -7,8 +7,9 @@ import router from './api/routes/index.js'
 import AppError from "./api/utils/AppError.js";
 import errorHandler from "./api/utils/errorHandler.js";
 import bodyParser from 'body-parser'
-import { BlockFiller } from './api/utils/blockFiller.js'
-import { LatestBlockWatcher } from './LatestBlockWatcher.js'
+import { BlockFiller } from './api/utils/blockFiller.js';
+import { LatestBlockWatcher } from './LatestBlockWatcher.js';
+import { DatabaseWatcher } from './DatabaseWatcher.js';
 
 dotenv.config();
 const {
@@ -66,6 +67,10 @@ switch(process.env.PROGRAM) {
     case "LATEST":
         const latestWatcher = new LatestBlockWatcher(CHAT_ID_BETA_TEST,CHAT_ID_UNFILTERED, ALERT_BOT_KEY, VOLUME_BOT_KEY, archiveNodeUrl)
         latestWatcher.start();
+        break;
+    case "DBWATCHER":
+        const databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, archiveNodeUrl);
+        databaseWatcher.start();
         break;
     case "TEST":
         //await LatestBlockWatcher.processWallets();
