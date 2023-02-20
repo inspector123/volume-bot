@@ -263,8 +263,8 @@ export const getContractsTablesVolume = async (req,res,next) => {
       break;
     case '1':
       query=`select
-        symbol, marketCap, volume1m, 
-        ageInMinutes
+        symbol, contract, marketCap, volume1m as vol, 
+        ageInMinutes as age
       
         from 
           Contracts1m 
