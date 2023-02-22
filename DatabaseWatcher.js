@@ -57,35 +57,39 @@ export class DatabaseWatcher {
     */
 
     async runJob(time, volume) {
-        const blocks = time*5;
-        const alerts = await this.getAlert(blocks, volume);
-        console.log(time, volume, alerts.length)
-        if (alerts.length) {
-            const marketCaps = [{mc: 100000, chatId: this.to100k },{mc: 1000000, chatId: this.to1m },{mc: 10000000, chatId: this.to10m },{mc: 1000000000, chatId: this.to1b }];
-            //don't want 1m alerts above 1M mc
-            //time == 1 ? marketCaps = marketCaps.slice(0,1) : null;
-            for (let i in marketCaps) {
-                const marketCapAlerts = alerts.filter(a=> {
-                    if (i > 0) {
-                        return a.mc > marketCaps[i-1].mc && a.mc < marketCaps[i].mc
-                    } else return a.mc < marketCaps[i].mc;
-                })
-                for (let coin of marketCapAlerts) {
-                    const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                    let messageText = `ALERT:
-                    Volume on $${symbol} reached ${sm} over the last ${time} minutes!
-                    Marketcap: ${mc}
-                    Total buys: ${totalBuys}
-                    Buy/sell ratio: ${parseInt(buyRatio) > 0 ? 1/parseInt(buyRatio) : buyRatio} ${buyRatio}
-                    Contract age in minutes: ${age}
-                    Contract: \`\`\`${contract}\`\`\`
-                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-                    `
-                    messageText = messageText.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-");
-                    this.volumeBot.telegram.sendMessage(marketCaps[i].chatId, messageText, {parse_mode: 'MarkdownV2'});
+        try { 
+            const blocks = time*5;
+            const alerts = await this.getAlert(blocks, volume);
+            console.log(time, volume, alerts.length)
+            if (alerts.length) {
+                const marketCaps = [{mc: 100000, chatId: this.to100k },{mc: 1000000, chatId: this.to1m },{mc: 10000000, chatId: this.to10m },{mc: 1000000000, chatId: this.to1b }];
+                //don't want 1m alerts above 1M mc
+                //time == 1 ? marketCaps = marketCaps.slice(0,1) : null;
+                for (let i in marketCaps) {
+                    const marketCapAlerts = alerts.filter(a=> {
+                        if (i > 0) {
+                            return a.mc > marketCaps[i-1].mc && a.mc < marketCaps[i].mc
+                        } else return a.mc < marketCaps[i].mc;
+                    })
+                    for (let coin of marketCapAlerts) {
+                        const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                        let messageText = `ALERT:
+                        Volume on $${symbol} reached ${sm} over the last ${time} minutes!
+                        Marketcap: $${mc}
+                        Total buys: ${totalBuys}
+                        Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
+                        Contract age in minutes: ${age} (${age/1440} days)
+                        Contract: \`\`\`${contract}\`\`\`
+                        Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                        `
+                        messageText = messageText.replace(/([0-9]{2,})\.[0-9]+/g,"$1").replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
+                        this.volumeBot.telegram.sendMessage(marketCaps[i].chatId, messageText, {parse_mode: 'MarkdownV2'});
+                    }
+                    
                 }
-                
             }
+        } catch(e) {
+            console.log(e);
         }
 
     }
