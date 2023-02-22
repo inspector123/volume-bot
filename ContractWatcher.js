@@ -2,7 +2,6 @@
 import api from "./api/utils/axios.js"
 import { Telegraf } from 'telegraf';
 import { ethers, utils } from "ethers"
-import SwapParser from './api/utils/swapParser.js'
 import fetch from 'node-fetch';
 import Constants from "./api/utils/constants.js";
 import cliProgress from 'cli-progress'
@@ -44,7 +43,6 @@ class ContractWatcher {
         this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
         this.httpProvider = this.archiveProvider;
         this.archiveNodeUrl = archiveNodeUrl;
-        this.swapParser = new SwapParser(archiveNodeUrl);
     }
 
     start() {

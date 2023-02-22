@@ -11,7 +11,7 @@ export class DatabaseWatcher {
     to10m;
     to1b;
 
-    constructor(volumeBotKey, to100k, to1m, to10m, to1b, archiveNodeUrl) {
+    constructor(volumeBotKey, to100k, to1m, to10m, to1b) {
         this.volumeBot = new Telegraf(volumeBotKey);
         this.to100k = to100k;
         this.to1m = to1m;
@@ -23,12 +23,15 @@ export class DatabaseWatcher {
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
-        this.run1mJob();
-        setInterval(()=>run1mJob(),60000);
+        this.runJob(1,10000);
+        setInterval(()=>this.runJob(1, 10000),1*60*1000);
+        setInterval(()=>this.runJob(5, 30000),5*60*1000);
+        setInterval(()=>this.runJob(15, 50000),15*60*1000);
+        setInterval(()=>this.runJob(60, 100000),60*60*1000);
         
     }
 
-    async getAlert(volume,blocks) {
+    async getAlert(blocks, volume) {
         try {
             const response = await api.get(`/api/alerts?volume=${volume}&blocks=${blocks}`);
             console.log(response.data.data)
@@ -38,15 +41,57 @@ export class DatabaseWatcher {
         }
     }
 
-    async run1mJob() {
-        const alerts = await this.getAlert(10000,5);
+    /*
+{
+    symbol: 'agEUR',
+    contract: '0x1a7e4e63778B4f12a199C062f3eFdD288afCBce8',
+    sm: 106318.719184,
+    mc: 30200736.88321536,
+    totalBuys: 1,
+    buyratio: 0,
+    priceRatio: 1,
+    ageInMinutes: 624093,
+    pairAddress: 0x12312312213213213
+  }
 
-        const marketCaps = [{mc: 100000, chatId: this.to100k },{mc: 1000000, chatId: this.to1m },{mc: 10000000, chatId: this.to10m },{mc: 1000000000, chatId: this.to1b }];
-        for (let i of marketCaps) {
-            const marketCapAlerts = alerts.filter(a=>a.mc < i.mc)
-            con
+    */
+
+    async runJob(time, volume) {
+        const blocks = time*5;
+        const alerts = await this.getAlert(blocks, volume);
+        console.log(time, volume, alerts.length)
+        if (alerts.length) {
+            const marketCaps = [{mc: 100000, chatId: this.to100k },{mc: 1000000, chatId: this.to1m },{mc: 10000000, chatId: this.to10m },{mc: 1000000000, chatId: this.to1b }];
+            //don't want 1m alerts above 1M mc
+            //time == 1 ? marketCaps = marketCaps.slice(0,1) : null;
+            for (let i in marketCaps) {
+                const marketCapAlerts = alerts.filter(a=> {
+                    if (i > 0) {
+                        return a.mc > marketCaps[i-1].mc && a.mc < marketCaps[i].mc
+                    } else return a.mc < marketCaps[i].mc;
+                })
+                for (let coin of marketCapAlerts) {
+                    const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                    let messageText = `ALERT:
+                    Volume on $${symbol} reached ${sm} over the last ${time} minutes!
+                    Marketcap: ${mc}
+                    Total buys: ${totalBuys}
+                    Buy/sell ratio: ${parseInt(buyRatio) > 0 ? 1/parseInt(buyRatio) : buyRatio} ${buyRatio}
+                    Contract age in minutes: ${age}
+                    Contract: \`\`\`${contract}\`\`\`
+                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                    `
+                    messageText = messageText.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-");
+                    this.volumeBot.telegram.sendMessage(marketCaps[i].chatId, messageText, {parse_mode: 'MarkdownV2'});
+                }
+                
+            }
         }
 
+    }
+
+    async runChangeInVolumeJob() {
+        return;
     }
 
     // async run5mJob() {
