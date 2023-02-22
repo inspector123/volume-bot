@@ -21,6 +21,10 @@ const {
     CHAT_ID_BETA_TEST,
     CHAT_ID_UNFILTERED,
     CHAT_ID_VOLUME_ALERTS,
+    CHAT_ID_ALERTS_TO100K,
+CHAT_ID_ALERTS_TO1M,
+CHAT_ID_ALERTS_TO10M,
+CHAT_ID_ALERTS_TO1B,
     PORT
  } = process.env;
 const app = express();
@@ -69,7 +73,7 @@ switch(process.env.PROGRAM) {
         latestWatcher.start();
         break;
     case "DBWATCHER":
-        const databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, archiveNodeUrl);
+        const databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, CHAT_ID_ALERTS_TO100K, CHAT_ID_ALERTS_TO1M, CHAT_ID_ALERTS_TO10M, CHAT_ID_ALERTS_TO1B, archiveNodeUrl);
         databaseWatcher.start();
         break;
     case "TEST":

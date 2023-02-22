@@ -10,7 +10,8 @@ const DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
 const BUSD = "0x4Fabb145d64652a948d72533023f6E7A623C7C53";
 const FRAX = "0x853d955aCEf822Db058eb8505911ED77F175b99e"
 const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
-const StablesOrEth = [USDC,USDT,DAI,WETH,BUSD, FRAX, WBTC]
+const agEUR = "0x1a7e4e63778B4f12a199C062f3eFdD288afCBce8";
+const StablesOrEth = [USDC,USDT,DAI,WETH,BUSD, FRAX, WBTC, agEUR]
 
 const USDCContractDetails = {
     totalSupply: "40141184377829550",
@@ -118,7 +119,7 @@ const addZeros = "0x000000000000000000000000"
 const Constants = { addZeros, univ3Factory, univ2Factory, topics, daiContract, disallowedPools, disallowedSymbols, disallowedTo, 
     mevBot1, mevBot2, busdETH, USDCUSDT, v2USDTDAI, sushiswapUSDTv2, v3DAI_2, v2USDC, 
     pancakeUSDC, pancakeUSDT, v2USDT, v3_DaiUSDCv4, v3USDC, v3Usdt, v3DaiUsdt,
-    KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT,
+    KyberSwap, KyberSwapInBetweenContract, USDC, WETH, WBTC, FRAX, BUSD, DAI, USDT, agEUR,
     acceptedRouters, botContracts, UniswapV3Router2, OneInchV4Router,OneInchv5Router,SushiSwapRouter, UniswapV2, StablesOrEth, apiKey,
     v3topic, v2topic, wstETH, WETHContractDetails, USDTContractDetails, USDCContractDetails, DAIContractDetails, veryBankingContract, bytes32Contracts
 }
