@@ -56,7 +56,7 @@ class ContractWatcher {
     async node() {
         this.httpProvider.on('block', async (latestBlockNumber)=>{
             this.latestBlockNumber = latestBlockNumber;
-            console.log('latest block: ', latestBlockNumber)
+            //console.log('latest block: ', latestBlockNumber)
             if (this.blocks == 0) this.run1mJob();
             this.blocks++;
             if (!(this.blocks % 5)) {
