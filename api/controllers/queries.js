@@ -311,6 +311,21 @@ export const getAlertsQuery = async (req,res,next) => {
   });
 }
 
+export const customSql = async (req,res,next) => {
+  const {sqlText} = req.query;
+  const forbiddenWords = ['drop', 'delete', 'alter', 'update' ]
+  for (let i in forbiddenWords) {
+    if (sqlText.search(forbiddenWords[i])) return next(new AppError("Used forbidden word", 404));
+  }
+  conn.query(sqlText, function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
+}
 // export const updateContract = (req, res, next) => {
 //   if (!req.body.contract) {
 //     return next(new AppError("No block id found", 404));
