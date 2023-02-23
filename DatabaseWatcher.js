@@ -10,6 +10,12 @@ export class DatabaseWatcher {
     to1m;
     to10m;
     to1b;
+    volume1m = 10000;
+    volume5m = 15000;
+    volume15m = 15000;
+    volume60m = 100000;
+    volume10MMinThreshold = 50000;
+    volume1BMinThreshold = 100000;
 
     constructor(volumeBotKey, to100k, to1m, to10m, to1b) {
         this.volumeBot = new Telegraf(volumeBotKey);
@@ -24,22 +30,85 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
         this.runJob(1,10000);
-        setInterval(()=>this.runJob(1, 10000),1*60*1000);
-        setInterval(()=>this.runJob(5, 30000),5*60*1000);
-        setInterval(()=>this.runJob(15, 50000),15*60*1000);
-        setInterval(()=>this.runJob(60, 100000),60*60*1000);
+        setInterval(()=>this.runJob(1, this.volume1m),1*60*1000);
+        setInterval(()=>this.runJob(5, this.volume5m),5*60*1000);
+        setInterval(()=>this.runJob(15, this.volume15m),15*60*1000);
+        setInterval(()=>this.runJob(60, this.volume60m),60*60*1000);
         
     }
 
     async getAlert(blocks, volume) {
         try {
             const response = await api.get(`/api/alerts?volume=${volume}&blocks=${blocks}`);
-            console.log(response.data.data)
             return response.data.data;
         } catch(e) {
             console.log(e.response.data, 'error')
         }
     }
+
+    async runJob(time, volume) {
+        try { 
+            const blocks = time*5;
+            const alerts = await this.getAlert(blocks, volume);
+            console.log(time, volume, alerts.length)
+            if (alerts.length) {
+                let marketCaps = [{mc: 100000, chatId: this.to100k, volumeMin: 0 },{mc: 1000000, chatId: this.to1m, volumeMin: 0 },{mc: 10000000, chatId: this.to10m, volumeMin: this.volume10MMinThreshold },{mc: 1000000000, chatId: this.to1b, volumeMin: this.volume1BMinThreshold }];
+                //don't want 1m alerts above 1M mc
+                //time == 1 ? marketCaps = marketCaps.slice(0,2) : null;
+                for (let i in marketCaps) {
+                    const marketCapAlerts = alerts.filter(a=> {
+                        if (i > 0) {
+                            return a.mc > marketCaps[i-1].mc && a.mc < marketCaps[i].mc
+                        } else return a.mc < marketCaps[i].mc;
+                    })
+                    for (let coin of marketCapAlerts) {
+                        const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                        if (sm < marketCaps[i].volumeMin) return;
+                        else {
+                            let messageText = `$${symbol}: ${time}m: $${sm}
+                            Total buys: ${totalBuys}
+                            Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
+                            Contract age in minutes: ${age} (${age/1440} days)
+                            Contract: \`\`\`${contract}\`\`\`
+                            Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                            `
+                            messageText = this.fixText(messageText)
+                            this.volumeBot.telegram.sendMessage(marketCaps[i].chatId, messageText, {parse_mode: 'MarkdownV2'});
+                        }
+                    }
+                    
+                }
+            }
+        } catch(e) {
+            console.log(e);
+        }
+
+    }
+
+    async TrendSpotter() {
+        return;
+    }
+    async runChangeInVolumeJob() {
+        return;
+    }
+
+    fixText(text) {
+        return text.replace(/([0-9]{2,})\.[0-9]+/g,"$1").replace(/([0-9]{1})\.([0-9]{2})/g, "$1.$2").replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
+    }
+
+
+
+    // async run5mJob() {
+    //     await this.getAlert(10000,25);
+    // }
+
+    // async run15mJob() {
+    //     await this.getAlert(10000,25);
+    // }
+
+
+
+
 
     /*
 {
@@ -56,60 +125,43 @@ export class DatabaseWatcher {
 
     */
 
-    async runJob(time, volume) {
-        try { 
-            const blocks = time*5;
-            const alerts = await this.getAlert(blocks, volume);
-            console.log(time, volume, alerts.length)
-            if (alerts.length) {
-                const marketCaps = [{mc: 100000, chatId: this.to100k },{mc: 1000000, chatId: this.to1m },{mc: 10000000, chatId: this.to10m },{mc: 1000000000, chatId: this.to1b }];
-                //don't want 1m alerts above 1M mc
-                //time == 1 ? marketCaps = marketCaps.slice(0,1) : null;
-                for (let i in marketCaps) {
-                    const marketCapAlerts = alerts.filter(a=> {
-                        if (i > 0) {
-                            return a.mc > marketCaps[i-1].mc && a.mc < marketCaps[i].mc
-                        } else return a.mc < marketCaps[i].mc;
-                    })
-                    for (let coin of marketCapAlerts) {
-                        const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        let messageText = `ALERT:
-                        Volume on $${symbol} reached ${sm} over the last ${time} minutes!
-                        Marketcap: $${mc}
-                        Total buys: ${totalBuys}
-                        Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
-                        Contract age in minutes: ${age} (${age/1440} days)
-                        Contract: \`\`\`${contract}\`\`\`
-                        Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-                        `
-                        messageText = messageText.replace(/([0-9]{2,})\.[0-9]+/g,"$1").replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
-                        this.volumeBot.telegram.sendMessage(marketCaps[i].chatId, messageText, {parse_mode: 'MarkdownV2'});
-                    }
-                    
-                }
+  async setUpCommands() {
+    const commands = [ 'volume1m', 'volume5m', 'volume15m', 'volume60m', 'volume10MMinThreshold', 'volume1BMinThreshold']
+    this.volumeBot.command('help', (ctx)=>{
+        this.volumeBot.telegram.sendMessage(ctx.chat.id, `
+        LIST OF COMMANDS: 
+        /volume1m {number} (current=${this.volume1m})
+        /volume5m {number}  (current=${this.volume5m})
+        /volume15m {number} (current=${this.volume15m})
+        /volume60m {number} (current=${this.volume60m})
+        /volume10MMinThreshold {number}  (current=${this.volume10MMinThreshold})
+        /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
+        set threshold for volume alerts.
+        `)
+    })
+
+
+
+
+
+
+    
+    commands.forEach(c=>{
+        this.volumeBot.command(c, async (ctx)=> {
+            const command = `${c} `;
+            try {
+                const number = ctx.message.text.match(/\s([0-9]+)/)[1];
+                this[c] = number;
+                //this[c] = number;
+                this.volumeBot.telegram.sendMessage(ctx.chat.id, `changed ${c} to ${number}`)
+            } catch(e) {
+                console.log(e)
+                this.volumeBot.telegram.sendMessage(ctx.chat.id, `error processing ${command} command, ${e}`)
             }
-        } catch(e) {
-            console.log(e);
-        }
-
-    }
-
-    async runChangeInVolumeJob() {
-        return;
-    }
-
-    // async run5mJob() {
-    //     await this.getAlert(10000,25);
-    // }
-
-    // async run15mJob() {
-    //     await this.getAlert(10000,25);
-    // }
-
-
-
-
-
+        })
+    })
+    this.volumeBot.launch();
+}
 
 
 
@@ -151,61 +203,7 @@ export class DatabaseWatcher {
         //1 hour alerts
     }
 
-    async setUpCommands() {
-        this.volumeBot.command('help', (ctx)=>{
-            this.volumeBot.telegram.sendMessage(ctx.chat.id, `
-            LIST OF COMMANDS: 
-            
-            `)
-        })
-
-
-
-
-
-
-
-        // this.volumeBot.command('volume', async (ctx)=> {
-        //     const command = 'volume';
-        //     try {
-        //         const text = ctx.message.text;
-        //         const marketCap = text.match(/(?:marketCap=)([0-9]+)/)[1];
-        //         const minutes = text.match(/(?:minutesInterval=)([0-9]+)/)[1];
-        //         this.volumeBot.telegram.sendMessage(ctx.chat.id, `processing volume search for marketCap=${marketCap} and minutesInterval=${minutes}`)
-        //         const response = await api.get(`/api/contracts?minutes=${1}&marketCap=${marketCap}`);
-        //         console.log(response.data.data.length)
-        //         //this.volumeBot.telegram.sendMessage(ctx.chat.id, `done`)
-        //         //const messageString = this.parseTelegramJson(response.data.data)
-        //         this.parseTelegramJson(ctx, response.data.data)
-
-        //         //this.volumeBot.telegram.sendMessage(ctx.chat.id, messageString)
-        //     } catch(e) {
-        //         console.log(e)
-        //         this.volumeBot.telegram.sendMessage(ctx.chat.id, `error processing ${command} command, ${e}`)
-        //     }
-        // })
-        // this.volumeBot.command('volume', async (ctx)=> {
-        //     const command = 'volume';
-        //     try {
-        //         const text = ctx.message.text;
-        //         const marketCap = text.match(/(?:marketCap=)([0-9]+)/)[1];
-        //         const minutes = text.match(/(?:minutesInterval=)([0-9]+)/)[1];
-        //         this.volumeBot.telegram.sendMessage(ctx.chat.id, `processing volume search for marketCap=${marketCap} and minutesInterval=${minutes}`)
-        //         const response = await api.get(`/api/contracts?minutes=${minutes}&marketCap=${marketCap}`);
-        //         console.log(response.data.data.length)
-        //         //this.volumeBot.telegram.sendMessage(ctx.chat.id, `done`)
-        //         //const messageString = this.parseTelegramJson(response.data.data)
-        //         this.parseTelegramJson(ctx, response.data.data)
-
-        //         //this.volumeBot.telegram.sendMessage(ctx.chat.id, messageString)
-        //     } catch(e) {
-        //         console.log(e)
-        //         this.volumeBot.telegram.sendMessage(ctx.chat.id, `error processing ${command} command, ${e}`)
-        //     }
-        // })
-        this.volumeBot.launch();
-    }
-
+    
     // async parseTelegramJson(ctx,json) {
     //     let str = "``` \n";
     //     let strlen = 0;
