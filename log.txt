@@ -7509,3 +7509,91 @@ latest block:  16708591
 latest block:  16708592
 latest block:  16708593
 latest block:  16708594
+Current Price of Ether: $ 1594
+Current Price of BTC: 23172.599157344182
+Current Price of Ether: $ 1594
+Current Price of BTC: 23172.599157344182
+latest block:  16708595
+latest block:  16708596
+latest block:  16708597
+latest block:  16708598
+Current Price of Ether: $ 1594
+Current Price of BTC: 23165.020337013364
+Current Price of Ether: $ 1594
+Current Price of BTC: 23165.020337013364
+latest block:  16708599
+latest block:  16708600
+latest block:  16708601
+latest block:  16708602
+latest block:  16708603
+latest block:  16708604
+Current Price of Ether: $ 1594
+Current Price of BTC: 23163.567693201625
+Current Price of Ether: $ 1594
+Current Price of BTC: 23163.567693201625
+latest block:  16708605
+latest block:  16708606
+latest block:  16708607
+latest block:  16708608
+latest block:  16708609
+Current Price of Ether: $ 1594
+Current Price of BTC: 23156.449738524112
+Current Price of Ether: $ 1594
+Current Price of BTC: 23156.449738524112
+latest block:  16708610
+latest block:  16708611
+latest block:  16708612
+latest block:  16708613
+latest block:  16708614
+Current Price of Ether: $ 1594
+Current Price of BTC: 23152.0697167756
+Current Price of Ether: $ 1594
+Current Price of BTC: 23152.0697167756
+latest block:  16708615
+latest block:  16708616
+latest block:  16708617
+latest block:  16708618
+Current Price of Ether: $ 1592
+Current Price of BTC: 23132.44263723497
+Current Price of Ether: $ 1592
+Current Price of BTC: 23132.44263723497
+latest block:  16708619
+latest block:  16708620
+latest block:  16708621
+latest block:  16708622
+latest block:  16708623
+Current Price of Ether: $ 1593
+Current Price of BTC: 23146.529189660178
+Current Price of Ether: $ 1593
+Current Price of BTC: 23146.529189660178
+latest block:  16708624
+latest block:  16708625
+latest block:  16708626
+latest block:  16708627
+latest block:  16708628
+Current Price of Ether: $ 1593
+Current Price of BTC: 23145.576056951908
+Current Price of Ether: $ 1593
+Current Price of BTC: 23145.576056951908
+latest block:  16708629
+latest block:  16708630
+latest block:  16708631
+latest block:  16708632
+Current Price of Ether: $ 1593
+Current Price of BTC: 23149.93462153131
+Current Price of Ether: $ 1593
+Current Price of BTC: 23149.93462153131
+latest block:  16708633
+latest block:  16708634
+latest block:  16708635
+latest block:  16708636
+latest block:  16708637
+latest block:  16708638
+Current Price of Ether: $ 1593
+Current Price of BTC: 23151.286150268857
+Current Price of Ether: $ 1593
+Current Price of BTC: 23151.286150268857
+latest block:  16708639
+latest block:  16708640
+latest block:  16708641
+latest block:  16708642

@@ -15,8 +15,8 @@ export class DatabaseWatcher {
     volume15m = 7000;
     volume30m = 25000;
     volume60m = 100000;
-    volume10MMinThreshold = 50000;
-    volume1BMinThreshold = 100000;
+    volume10MMinThreshold = 0;
+    volume1BMinThreshold = 0;
     contractsToIgnore = [];
 
     constructor(volumeBotKey, chatId) {
@@ -60,7 +60,8 @@ export class DatabaseWatcher {
                     })
                     for (let coin of marketCapAlerts) {
                         const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase())) return;
+                        console.log(contract, this.contractsToIgnore)
+                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
                         else {
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}
