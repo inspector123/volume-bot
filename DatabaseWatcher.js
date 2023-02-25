@@ -123,8 +123,7 @@ export class DatabaseWatcher {
             /volume10MMinThreshold {number}  (current=${this.volume10MMinThreshold})
             /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
             set threshold for volume alerts.
-            /turnoff {contract}: ignore contract.
-            current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.reduce((i,j)=>`${i}, ${j}`) : "[]"}
+            /turnoff {contract}: ignore contract. current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.reduce((i,j)=>`${i}, ${j}`) : "[ ]"}
             `)
         } catch(e) {
             console.log(e)
@@ -134,8 +133,9 @@ export class DatabaseWatcher {
         try {
             const contract = ctx.message.text.match(/\s(0x[0-9A-Za-z]{40})/)[1];
             console.log(contract)
-            if (contract) {
+            if (contract && !this.contractsToIgnore.includes(contract)) {
                 this.contractsToIgnore = [...this.contractsToIgnore, contract]
+                this.volumeBot.telegram.sendMessage(ctx.chat.id, `turned off alerts for ${contract}`)
             }
         } catch(e) {
             console.log(e);
