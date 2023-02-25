@@ -312,24 +312,24 @@ export const getAlertsQuery = async (req,res,next) => {
 }
 
 export const customSql = async (req,res,next) => {
-  const {sqlText} = req.query;
+  let {sqlText} = req.query;
   const forbiddenWords = ['drop', 'delete', 'alter', 'update' ]
   for (let i in forbiddenWords) {
     if (sqlText.search(forbiddenWords[i]) > 0) return next(new AppError(`Used forbidden word ${forbiddenWords[i]}`, 404));
   }
-  console.log(`${sqlText.replace(/"/g, "").replace("%2B", "+")}`)
-  res.status(200).json({
-    status: "success",
-    data: [sqlText.replace(/"/g, "")],
-  });
-  // conn.query(sqlText.replace(/"/g, ""), function (err, data, fields) {
-  //   if(err) return next(new AppError(err))
-  //   res.status(200).json({
-  //     status: "success",
-  //     length: data?.length,
-  //     data: data,
-  //   });
+  sqlText = sqlText.replace(/"/g, "").replace("%2B", "+");
+  // res.status(200).json({
+  //   status: "success",
+  //   data: [sqlText.replace(/"/g, "")],
   // });
+  conn.query(sqlText, function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
 }
 // export const updateContract = (req, res, next) => {
 //   if (!req.body.contract) {

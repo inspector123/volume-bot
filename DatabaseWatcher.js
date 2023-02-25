@@ -10,12 +10,14 @@ export class DatabaseWatcher {
     to1m;
     to10m;
     to1b;
-    volume1m = 10000;
-    volume5m = 15000;
-    volume15m = 15000;
+    volume1m = 5000;
+    volume5m = 5000;
+    volume15m = 7000;
+    volume30m = 25000;
     volume60m = 100000;
     volume10MMinThreshold = 50000;
     volume1BMinThreshold = 100000;
+    contractsToIgnore = [];
 
     constructor(volumeBotKey, to100k, to1m, to10m, to1b) {
         this.volumeBot = new Telegraf(volumeBotKey);
@@ -63,9 +65,9 @@ export class DatabaseWatcher {
                     })
                     for (let coin of marketCapAlerts) {
                         const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        if (sm < marketCaps[i].volumeMin) return;
+                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract)) return;
                         else {
-                            let messageText = `$${symbol}: ${time}m: $${sm}
+                            let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}
                             Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
                             Contract age in minutes: ${age} (${age/1440} days)
@@ -108,36 +110,36 @@ export class DatabaseWatcher {
 
 
 
-
-
-    /*
-{
-    symbol: 'agEUR',
-    contract: '0x1a7e4e63778B4f12a199C062f3eFdD288afCBce8',
-    sm: 106318.719184,
-    mc: 30200736.88321536,
-    totalBuys: 1,
-    buyratio: 0,
-    priceRatio: 1,
-    ageInMinutes: 624093,
-    pairAddress: 0x12312312213213213
-  }
-
-    */
-
   async setUpCommands() {
     const commands = [ 'volume1m', 'volume5m', 'volume15m', 'volume60m', 'volume10MMinThreshold', 'volume1BMinThreshold']
     this.volumeBot.command('help', (ctx)=>{
-        this.volumeBot.telegram.sendMessage(ctx.chat.id, `
-        LIST OF COMMANDS: 
-        /volume1m {number} (current=${this.volume1m})
-        /volume5m {number}  (current=${this.volume5m})
-        /volume15m {number} (current=${this.volume15m})
-        /volume60m {number} (current=${this.volume60m})
-        /volume10MMinThreshold {number}  (current=${this.volume10MMinThreshold})
-        /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
-        set threshold for volume alerts.
-        `)
+        try {
+            this.volumeBot.telegram.sendMessage(ctx.chat.id, `
+            LIST OF COMMANDS: 
+            /volume1m {number} (current=${this.volume1m})
+            /volume5m {number}  (current=${this.volume5m})
+            /volume15m {number} (current=${this.volume15m})
+            /volume60m {number} (current=${this.volume60m})
+            /volume10MMinThreshold {number}  (current=${this.volume10MMinThreshold})
+            /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
+            set threshold for volume alerts.
+            /turnoff {contract}: ignore contract.
+            current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.reduce((i,j)=>`${i}, ${j}`) : "[]"}
+            `)
+        } catch(e) {
+            console.log(e)
+        }
+    })
+    this.volumeBot.command('turnoff', (ctx)=>{
+        try {
+            const contract = ctx.message.text.match(/\s(0x[0-9A-Za-z]{40})/)[1];
+            console.log(contract)
+            if (contract) {
+                this.contractsToIgnore = [...this.contractsToIgnore, contract]
+            }
+        } catch(e) {
+            console.log(e);
+        }
     })
 
 
