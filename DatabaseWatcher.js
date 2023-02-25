@@ -6,10 +6,10 @@ import wtf8 from 'wtf-8';
 export class DatabaseWatcher {
 
     volumeBot;
-    to100k;
-    to1m;
-    to10m;
-    to1b;
+    to100k = 2;
+    to1m = 4;
+    to10m = 6;
+    to1b  = 8;
     volume1m = 5000;
     volume5m = 5000;
     volume15m = 7000;
@@ -19,12 +19,9 @@ export class DatabaseWatcher {
     volume1BMinThreshold = 100000;
     contractsToIgnore = [];
 
-    constructor(volumeBotKey, to100k, to1m, to10m, to1b) {
+    constructor(volumeBotKey, chatId) {
         this.volumeBot = new Telegraf(volumeBotKey);
-        this.to100k = to100k;
-        this.to1m = to1m;
-        this.to10m = to10m;
-        this.to1b = to1b;
+        this.chatId = chatId;
         this.volumeBot.catch(e=>console.log(e))
         
     }
@@ -54,9 +51,7 @@ export class DatabaseWatcher {
             const alerts = await this.getAlert(blocks, volume);
             console.log(time, volume, alerts.length)
             if (alerts.length) {
-                let marketCaps = [{mc: 100000, chatId: this.to100k, volumeMin: 0 },{mc: 1000000, chatId: this.to1m, volumeMin: 0 },{mc: 10000000, chatId: this.to10m, volumeMin: this.volume10MMinThreshold },{mc: 1000000000, chatId: this.to1b, volumeMin: this.volume1BMinThreshold }];
-                //don't want 1m alerts above 1M mc
-                //time == 1 ? marketCaps = marketCaps.slice(0,2) : null;
+                let marketCaps = [{mc: 100000, topicId: this.to100k, volumeMin: 0 },{mc: 1000000, topicId: this.to1m, volumeMin: 0 },{mc: 10000000, topicId: this.to10m, volumeMin: this.volume10MMinThreshold },{mc: 1000000000, topicId: this.to1b, volumeMin: this.volume1BMinThreshold }];
                 for (let i in marketCaps) {
                     const marketCapAlerts = alerts.filter(a=> {
                         if (i > 0) {
@@ -65,7 +60,7 @@ export class DatabaseWatcher {
                     })
                     for (let coin of marketCapAlerts) {
                         const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract)) return;
+                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase())) return;
                         else {
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}
@@ -75,7 +70,7 @@ export class DatabaseWatcher {
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
                             messageText = this.fixText(messageText)
-                            this.volumeBot.telegram.sendMessage(marketCaps[i].chatId, messageText, {parse_mode: 'MarkdownV2'});
+                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId});
                         }
                     }
                     
@@ -86,16 +81,15 @@ export class DatabaseWatcher {
         }
 
     }
-
     async TrendSpotter() {
         return;
     }
     async runChangeInVolumeJob() {
-        return;
+       // const response = await api.get()
     }
 
     fixText(text) {
-        return text.replace(/([0-9]{2,})\.[0-9]+/g,"$1").replace(/([0-9]{1})\.([0-9]{2})/g, "$1.$2").replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
+        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
     }
 
 
@@ -139,6 +133,15 @@ export class DatabaseWatcher {
             }
         } catch(e) {
             console.log(e);
+        }
+    })
+
+    this.volumeBot.command('test', (ctx)=>{
+        try {
+            this.volumeBot.telegram.sendMessage(ctx.chat.id, `${ctx.update.message.reply_to_message.message_thread_id}`, {reply_to_message_id: ctx.update.message.reply_to_message.message_thread_id})
+        } catch(e) {
+            console.log(e);
+            this.volumeBot.telegram.sendMessage(ctx.chat.id, `${e}`)
         }
     })
 

@@ -1,15 +1,97 @@
 
 > volume-bot@1.0.0 start
-> node start.js
+> node --max-old-space-size=8192 start.js
 
 running contracts bot
 server running on port 3001
-newContracts length 7
+newContracts length 3
 got liq add blocks
-7 new contracts added to table
+3 new contracts added to table
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 2
+got liq add blocks
+2 new contracts added to table
+running 1m job
+newContracts length 2
+got liq add blocks
+2 new contracts added to table
 running 1m job
 newContracts length 0
 got liq add blocks
 running 1m job
 newContracts length 0
 got liq add blocks
+running 5m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 0
+got liq add blocks
+running 5m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 0
+got liq add blocks
+running 5m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 0
+got liq add blocks
+running 1m job
+newContracts length 0
+got liq add blocks
+running 5m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
+running 1m job
+newContracts length 1
+got liq add blocks
+1 new contracts added to table
