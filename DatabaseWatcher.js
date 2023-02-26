@@ -1,7 +1,6 @@
 
 import api from "./api/utils/axios.js"
 import {Telegraf} from "telegraf"
-import wtf8 from 'wtf-8';
 
 export class DatabaseWatcher {
 
@@ -15,19 +14,25 @@ export class DatabaseWatcher {
     volume15m = 7000;
     volume30m = 25000;
     volume60m = 100000;
+    volume240m = 250000;
     volume10MMinThreshold = 40000;
     volume1BMinThreshold = 100000;
     contractsToIgnore = [];
+    PercentChangeThreshold = {
+        m15: 100,
+        m60: 100
+    }
+    ageThreshold = 16;
 
     constructor(volumeBotKey, chatId) {
         this.volumeBot = new Telegraf(volumeBotKey);
         this.chatId = chatId;
-        this.volumeBot.catch(e=>console.log(e))
         
     }
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
+        //this.runLookbackJob(15);
         this.runVolumeJob(1,10000);
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
 
@@ -37,15 +42,17 @@ export class DatabaseWatcher {
 
         setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
 
-        setInterval(()=>this.runLookBackJob(15, this.volume15m),15*60*1000);
+        //setInterval(()=>this.runLookBackJob(15, this.volume15m),15*60*1000);
 
-        setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+        //setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
 
         
         setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
 
+        setInterval(()=>this.runVolumeJob(240, this.volume240m),240*60*1000);
 
-        //to start, 5m will be only if there are a huge amount of buys
+
+        //to start, 5m will be only if there are a huge amount of buys, 5m only if less than hour old, 1m only for totalbuys and less than hour old
 
         //15m will be checking from the last 15m
         
@@ -65,9 +72,10 @@ export class DatabaseWatcher {
         }
     }
 
-    async getLookBackAlert(blocks) {
+    async getLookBackAlert(blocks, table) {
         try {
-            const response = await api.get(`/api/contracts`)
+            const response = await api.get(`/api/contracts?table=${table}&blocks=${blocks}`)
+            return response.data.data;
         } catch(e) {
             console.log(e.response.data, 'error')
         }
@@ -87,7 +95,7 @@ export class DatabaseWatcher {
                         } else return a.mc < marketCaps[i].mc;
                     })
                     for (let coin of marketCapAlerts) {
-                        const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                        let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
                         if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
                         else {
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
@@ -101,6 +109,24 @@ export class DatabaseWatcher {
                             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId});
                         }
                     }
+                    for (let coin of marketCapAlerts) {
+                        let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                        if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
+                        else {
+                            if (age <= this.ageThreshold && totalBuys >= 100) {
+                                let messageText = `$${symbol}: Over 100 buys spotted on new coin!
+                                MC: ${mc}
+                            Total buys: ${totalBuys}
+                            Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
+                            Contract age in minutes: ${age} 
+                            Contract: \`\`\`${contract}\`\`\`
+                            Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                            `
+                            messageText = this.fixText(messageText)
+                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId});
+                            }
+                        }
+                    }
                     
                 }
             }
@@ -111,16 +137,59 @@ export class DatabaseWatcher {
     }
 
     async runLookbackJob(time) {
+        //change topic=241
         const blocks = time*5;
-        const items = await this.getLookBackAlert(blocks);
+        const { table, volume } = this.getTable(blocks);
+        console.log(blocks,table)
+        let items = await this.getLookBackAlert(blocks, table);
+        //console.log(items)
+        items = items.filter(i=>i[volume] > 500);
+
+        //get all contracts so we can compare each individually
+        let contracts = [...new Set(items.map(i=>i.contract))];
+        //console.log(contracts)
+        for (let i in contracts) {
+            let contractItems = items.filter(item=>item.contract==contracts[i]);
+            //console.log(contractItems);
+            if (contractItems.length != 2) continue;
+            else {
+                let sorted = contractItems.sort((a,b)=>a.blockNumber-b.blockNumber);
+                console.log(sorted)
+                if (sorted[0][volume]/sorted[1][volume] > 2.0) {
+                    const messageText = `volume % increase on ${sorted[0].symbol}`;
+                    const textToSend = this.fixText(messageText);
+                    //this.volumeBot.telegram.sendMessage(this.chatId, textToSend, {parse_mode: 'MarkdownV2', reply_to_message_id: 241})
+                }
+            }
+        }
+
        //
         
     }
+
+
 
     async runEpiJob() {
         //run 1m but then check to see if in...
 
         
+    }
+
+    getTable(blocks){
+        switch(blocks) {
+            case 5: 
+                return {table: 'Contracts1m', volume: 'volume1m'};
+            case 25:
+                return {table: 'Contracts5m', volume: 'volume5m'};
+            case 75:
+                return {table: 'Contracts15m', volume: 'volume15m'};        
+            case 60:
+                return {table: 'Contracts1h', volume: 'volume1h'};
+            case 1440:
+                return {table: 'Contracts1d', volume: 'volume1d'};
+            default:
+                return {table: '', volume: ''};
+        }
     }
 
     
@@ -151,7 +220,7 @@ export class DatabaseWatcher {
 
 
   async setUpCommands() {
-    const commands = [ 'volume1m', 'volume5m', 'volume15m', 'volume60m', 'volume10MMinThreshold', 'volume1BMinThreshold']
+    const commands = [ 'volume1m', 'volume5m', 'volume15m', 'volume60m', 'volume10MMinThreshold', 'volume1BMinThreshold', 'ageThreshold']
     this.volumeBot.command('help', (ctx)=>{
         try {
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `
@@ -164,6 +233,7 @@ export class DatabaseWatcher {
             /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
             set threshold for volume alerts.
             /turnoff {contract}: ignore contract. current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.length : `0`}
+            /ageThreshold {number}: threshold for spotting buys at start (current=${this.ageThreshold})
             `)
         } catch(e) {
             console.log(e)
@@ -182,7 +252,7 @@ export class DatabaseWatcher {
         }
     })
 
-    this.volumeBot.command('test', (ctx)=>{
+    this.volumeBot.command('gettopicid', (ctx)=>{
         try {
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `${ctx.update.message.reply_to_message.message_thread_id}`, {reply_to_message_id: ctx.update.message.reply_to_message.message_thread_id})
         } catch(e) {
@@ -212,6 +282,15 @@ export class DatabaseWatcher {
         })
     })
     this.volumeBot.launch();
+
+    this.volumeBot.catch((err, ctx) => {
+        if (err.code === 429) {
+          console.log('Too Many Requests error');
+          // handle the error here, e.g. wait for a certain amount of time before making the next request
+        } else {
+          console.log('Error occurred:', err);
+        }
+      });
 }
 
 
@@ -219,38 +298,5 @@ export class DatabaseWatcher {
 
 
 
-    async run1mJob_old() {
-        //1. get last minute
 
-        //1m alerts
-        try {
-            //const response = await api.get(`/api/contracts?minutes=1&marketCap=100000`);
-            console.log(response.data.data)
-        } catch(e) {
-            console.log(e.response.data, 'error')
-        }
-
-        //if it's less than 15 minutes old and < 100k marketcap and 1mvolume>5000
-
-        //oBTC based alert -- if 5m volume > 8000 and marketCap < 1000000
-        //if 15m volume > 25000 and marketCap < 1000000
-
-
-        //if less than 100000 marketcap and >10000 volume in 15 minutes
-
-        //if less than 1000000 marketcap and 100000 volume
-
-        //2. get last 5 minutes
-
-
-        //5m alerts
-
-
-        //3. get last 15 minutes
-        //15m alerts
-
-
-        //4. get last 1 hour 
-        //1 hour alerts
-    }
 }
