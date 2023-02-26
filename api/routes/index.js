@@ -27,8 +27,6 @@ router.route("/api/contracts").post(createContracts);
 
 router.route("/api/contracts").get(getLookBackByOneSequenceQuery);
 
-router.route()
-
 router.route("/api/sql").get(customSql);
 
 
