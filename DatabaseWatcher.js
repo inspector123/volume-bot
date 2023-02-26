@@ -9,12 +9,12 @@ export class DatabaseWatcher {
     to1m = 4;
     to10m = 6;
     to1b  = 8;
-    volume1m = 5000;
-    volume5m = 5000;
-    volume15m = 7000;
-    volume30m = 25000;
-    volume60m = 100000;
-    volume240m = 250000;
+    volume1m = 500000;
+    volume5m = 500000;
+    volume15m = 700000;
+    volume30m = 2500000;
+    volume60m = 10000000;
+    volume240m = 25000000;
     volume10MMinThreshold = 40000;
     volume1BMinThreshold = 100000;
     contractsToIgnore = [];
@@ -245,7 +245,7 @@ export class DatabaseWatcher {
             console.log(contract)
             if (contract && !this.contractsToIgnore.includes(contract)) {
                 this.contractsToIgnore = [...this.contractsToIgnore, contract]
-                this.volumeBot.telegram.sendMessage(ctx.chat.id, `turned off alerts for ${contract}`)
+                this.volumeBot.telegram.sendMessage(ctx.chat.id, `turned off alerts for ${contract}`).catch(e=>console.log(e))
             }
         } catch(e) {
             console.log(e);
@@ -259,6 +259,12 @@ export class DatabaseWatcher {
             console.log(e);
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `${e}`)
         }
+    })
+
+    this.volumeBot.command('testbreak', ()=>{
+        // for (let i = 0; i<500; i++) {
+        //     this.volumeBot.telegram.sendMessage("-706531507",'test')
+        // }
     })
 
 
