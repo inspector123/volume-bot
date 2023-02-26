@@ -214,6 +214,8 @@ class ContractWatcher {
                         marketCap: getExistingVolume.marketCap,
                         price: getExistingVolume.price,
                         volume1m: getExistingVolume.volume,
+                        totalBuys: getExistingVolume.totalBuys,
+                        totalSells: getExistingVolume.totalSells,
                         buyRatio1m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
                         ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
 
@@ -313,6 +315,8 @@ class ContractWatcher {
                         marketCap: getExistingVolume.marketCap,
                         price: getExistingVolume.price,
                         volume5m: getExistingVolume.volume,
+                        totalBuys: getExistingVolume.totalBuys,
+                        totalSells: getExistingVolume.totalSells,
                         buyRatio5m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
                         ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
 
@@ -412,6 +416,8 @@ class ContractWatcher {
                         marketCap: getExistingVolume.marketCap,
                         price: getExistingVolume.price,
                         volume15m: getExistingVolume.volume,
+                        totalBuys: getExistingVolume.totalBuys,
+                        totalSells: getExistingVolume.totalSells,
                         buyRatio15m: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
                         ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
 
@@ -511,6 +517,8 @@ class ContractWatcher {
                         marketCap: getExistingVolume.marketCap,
                         price: getExistingVolume.price,
                         volume1h: getExistingVolume.volume,
+                        totalBuys: getExistingVolume.totalBuys,
+                        totalSells: getExistingVolume.totalSells,
                         buyRatio1h: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
                         ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
 
@@ -610,6 +618,8 @@ class ContractWatcher {
                         marketCap: getExistingVolume.marketCap,
                         price: getExistingVolume.price,
                         volume1d: getExistingVolume.volume,
+                        totalBuys: getExistingVolume.totalBuys,
+                        totalSells: getExistingVolume.totalSells,
                         buyRatio1d: (getExistingVolume.sumBuys) / (getExistingVolume.sumBuys + getExistingVolume.sumSells),
                         ageInMinutes: (new Date(Date.now()) - new Date(allContracts[i].liqAddTimestamp*1000))/60000
 

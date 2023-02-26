@@ -76,7 +76,7 @@ export const getBlock = (req, res, next) => {
   }
   if (req.query.sortBySymbol) {
     conn.query(
-      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price, sum(IF(isBuy=1,isBuy*usdVolume, 0)) as sumBuys, sum(IF(isBuy=-1, usdVolume, 0)) as sumSells FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
+      "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price, sum(IF(isBuy=1,isBuy*usdVolume, 0)) as sumBuys, sum(IF(isBuy=-1, usdVolume, 0)) as sumSells, count(IF(isBuy=1, isBuy,0)) as totalBuys, count(IF(isBuy=-1, isBuy*-1, 0)) as totalSells FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
       function (err, data, fields) {
         if (err) return next(new AppError(err, 500));
@@ -194,7 +194,7 @@ export const createContractOrGetMatchingContracts = (req, res, next) => {
 
 export const createContracts = async(req, res, next) => {
   if (!req.query.table) return next(new AppError("No table provided", 404));
-  conn.query(`INSERT INTO ${req.query.table} (contract,symbol,dateTime, blockNumber, marketCap,price,${req.query.volume},${req.query.buyRatio},ageInMinutes) VALUES(?);`.repeat(req.body.length)
+  conn.query(`INSERT INTO ${req.query.table} (contract,symbol,dateTime, blockNumber, marketCap,price,${req.query.volume},totalBuys,totalSells,${req.query.buyRatio},ageInMinutes) VALUES(?);`.repeat(req.body.length)
     ,req.body.map(b=>Object.values(b)), function (err, data, fields) { if (err) return next(new AppError(err, 500));
     res.status(201).json({
       status: "success",
@@ -626,6 +626,69 @@ CREATE TABLE Contracts1d(id int NOT NULL AUTO_INCREMENT,
   blockNumber double, 
   marketCap double,
   price double,
+  volume1d double,
+  buyRatio1d double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+
+CREATE TABLE TotalBuys5m(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  volume5m double,
+  totalBuys double,
+  totalSells double,
+  buyRatio1h double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+
+CREATE TABLE TotalBuys15m(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  totalBuys double,
+  totalSells double,
+  volume15m double,
+  buyRatio15m double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+
+CREATE TABLE TotalBuys1h(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  totalBuys double,
+  totalSells double,
+  volume1h double,
+  buyRatio1h double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+CREATE TABLE TotalBuys1d(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME,
+  blockNumber double, 
+  marketCap double,
+  price double,
+  totalBuys double,
+  totalSells double,
   volume1d double,
   buyRatio1d double,
   ageInMinutes double,

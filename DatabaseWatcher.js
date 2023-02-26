@@ -15,8 +15,8 @@ export class DatabaseWatcher {
     volume15m = 7000;
     volume30m = 25000;
     volume60m = 100000;
-    volume10MMinThreshold = 0;
-    volume1BMinThreshold = 0;
+    volume10MMinThreshold = 40000;
+    volume1BMinThreshold = 100000;
     contractsToIgnore = [];
 
     constructor(volumeBotKey, chatId) {
@@ -29,10 +29,10 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
         this.runJob(1,10000);
-        setInterval(()=>this.runJob(1, this.volume1m),1*60*1000);
-        setInterval(()=>this.runJob(5, this.volume5m),5*60*1000);
-        setInterval(()=>this.runJob(15, this.volume15m),15*60*1000);
-        setInterval(()=>this.runJob(60, this.volume60m),60*60*1000);
+        setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
+        setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
+        setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
+        setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
         
     }
 
@@ -45,7 +45,7 @@ export class DatabaseWatcher {
         }
     }
 
-    async runJob(time, volume) {
+    async runVolumeJob(time, volume) {
         try { 
             const blocks = time*5;
             const alerts = await this.getAlert(blocks, volume);
@@ -60,7 +60,6 @@ export class DatabaseWatcher {
                     })
                     for (let coin of marketCapAlerts) {
                         const { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        console.log(contract, this.contractsToIgnore)
                         if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
                         else {
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
@@ -82,6 +81,17 @@ export class DatabaseWatcher {
         }
 
     }
+
+    async runEpiJob() {
+        //run 1m but then check to see if in...
+
+        
+    }
+
+    
+
+
+
     async TrendSpotter() {
         return;
     }
@@ -118,7 +128,7 @@ export class DatabaseWatcher {
             /volume10MMinThreshold {number}  (current=${this.volume10MMinThreshold})
             /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
             set threshold for volume alerts.
-            /turnoff {contract}: ignore contract. current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.reduce((i,j)=>`${i}, ${j}`) : "[ ]"}
+            /turnoff {contract}: ignore contract. current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.length : `0`}
             `)
         } catch(e) {
             console.log(e)
