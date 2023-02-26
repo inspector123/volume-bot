@@ -28,18 +28,46 @@ export class DatabaseWatcher {
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
-        this.runJob(1,10000);
+        this.runVolumeJob(1,10000);
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
+
         setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
+
+        //setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
+
         setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
+
+        setInterval(()=>this.runLookBackJob(15, this.volume15m),15*60*1000);
+
         setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+
         
+        setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+
+
+        //to start, 5m will be only if there are a huge amount of buys
+
+        //15m will be checking from the last 15m
+        
+        //60m
+
+        //5m alert only if what??
+
+        //5m volume alert will fire too much.
     }
 
     async getAlert(blocks, volume) {
         try {
             const response = await api.get(`/api/alerts?volume=${volume}&blocks=${blocks}`);
             return response.data.data;
+        } catch(e) {
+            console.log(e.response.data, 'error')
+        }
+    }
+
+    async getLookBackAlert(blocks) {
+        try {
+            const response = await api.get(`/api/contracts`)
         } catch(e) {
             console.log(e.response.data, 'error')
         }
@@ -80,6 +108,13 @@ export class DatabaseWatcher {
             console.log(e);
         }
 
+    }
+
+    async runLookbackJob(time) {
+        const blocks = time*5;
+        const items = await this.getLookBackAlert(blocks);
+       //
+        
     }
 
     async runEpiJob() {
@@ -189,7 +224,7 @@ export class DatabaseWatcher {
 
         //1m alerts
         try {
-            const response = await api.get(`/api/contracts?minutes=1&marketCap=100000`);
+            //const response = await api.get(`/api/contracts?minutes=1&marketCap=100000`);
             console.log(response.data.data)
         } catch(e) {
             console.log(e.response.data, 'error')
@@ -218,71 +253,4 @@ export class DatabaseWatcher {
         //4. get last 1 hour 
         //1 hour alerts
     }
-
-    
-    // async parseTelegramJson(ctx,json) {
-    //     let str = "``` \n";
-    //     let strlen = 0;
-    //     for (let i in json) {
-    //         for (let [k,v] of Object.entries(json[i])) {
-    //             if (i==0) {
-    //                 if (k!='contract') {
-    //                     str += `${k}---|`
-    //                 } else {
-    //                     str += `${k}${`-`.repeat(38)}|`
-    //                 }
-    //             }
-    //             //str += `${k}: ${v} \n`
-    //         }
-    //         str += `\n`
-    //         for (let [k,v] of Object.entries(json[i])) {
-    //             let item = v;
-    //             let isItemNumber = !isNaN(parseInt(v));
-    //             if (isItemNumber) {
-    //                 v = `${v}`.replace(/([0-9])\.([0-9]+)/,"$1")
-    //             } else {
-    //                 v = wtf8.encode(v);
-    //                 v = `${v}`.slice(1,k.length+3)
-    //             }
-
-    //             v.length < k.length + 3 ? v = `${v}${` `.repeat(k.length+3-v.length)}|` : null
-    //             str += v
-    //         }
-    //         str += `\n`
-
-    //         //str += `----------------------- \n`
-    //     }
-    //     str += "```"
-    //     //str = utf8.encode(str);
-    //     for (let i = 0; i<str.length; i = i+2000) {
-    //         const end = i+2000 < str.length ? i+2000 : str.length;
-    //         // this.volumeBot.telegram.sendMessage(ctx.chat.id,str.slice(i,end))
-    //         ctx.replyWithMarkdownV2(str.slice(i,end));
-    //     }
- 
-    // }
-
-
-
-    // async parseTelegramJson(ctx,json) {
-    //     let str = "";
-    //     let strlen = 0;
-    //     for (let i in json) {
-    //         str += `${parseInt(i)+1}.`
-    //         for (let [k,v] of Object.entries(json[i])) {
-    //             str += `${k}: ${v},`
-    //         }
-    //         str += `----------------------- \n`
-    //     }
-    //     //str = wtf8.encode(str);
-    //     for (let i = 0; i<str.length; i = i+2000) {
-    //         const end = i+2000 < str.length ? i+2000 : str.length;
-    //         this.volumeBot.telegram.sendMessage(ctx.chat.id,str.slice(i,end))
-    //     }
- 
-    //     return str
-
-    // }
-
-
 }

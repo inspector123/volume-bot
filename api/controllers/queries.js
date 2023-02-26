@@ -204,88 +204,10 @@ export const createContracts = async(req, res, next) => {
   
 }
 
-export const getContractsTablesVolume = async (req,res,next) => {
-  console.log(req.query)
-  if (!req.query.minutes) {
-    return next(new AppError("No minutes query found", 404));
-  }
-  if (!req.query.marketCap) {
-    return next(new AppError("No marketCap query found", 404));
-  }
-  // if (!req.query.table) {
-  //   return next(new AppError("No minutes query found", 404));
-  // }
-  let query;
-  switch(req.query.minutes) {
-    case '1440':
-      query=`select 
-      symbol, marketCap, volume1d, 
-      blockNumber, ageInMinutes, dateTime
-    
-      from 
-        Contracts1d 
-      where 
-        marketCap<${req.query.marketCap}  and blockNumber=(select max(blockNumber) from Contracts1d)
-      order by dateTime, volume15m, ageInMinutes desc;`
-      break;
-    case '60':
-      query=`select 
-      symbol, marketCap, volume1h, 
-      blockNumber, ageInMinutes, dateTime
-    
-      from 
-        Contracts1h 
-      where 
-        marketCap<${req.query.marketCap}  and blockNumber=(select max(blockNumber) from Contracts1h)
-      order by dateTime, volume1h, ageInMinutes desc;`
-      break;
-    case '15':
-      query=`select 
-      symbol, marketCap, volume15m, ageInMinutes
-    
-      from 
-        Contracts15m 
-      where 
-        marketCap<${req.query.marketCap}  and blockNumber=(select max(blockNumber) from Contracts15m)
-      order by dateTime, volume15m, ageInMinutes desc;`
-      break;
-    case '5':
-      query=`
-        select 
-        symbol, marketCap, volume5m as volume, 
-        ageInMinutes
-      
-        from 
-          Contracts1m 
-        where 
-          marketCap<${req.query.marketCap} and blockNumber=(select max(blockNumber) from Contracts5m)
-        order by dateTime, volume, ageInMinutes desc;`;
-      break;
-    case '1':
-      query=`select
-        symbol, contract, marketCap, volume1m as vol, 
-        ageInMinutes as age
-      
-        from 
-          Contracts1m 
-        where 
-          marketCap<${req.query.marketCap} and blockNumber=(select max(blockNumber) from Contracts1m)
-        order by volume1m, ageInMinutes desc;
-      `;
-      break;
-    default: 
-        query=`select 
-        symbol, marketCap, volume1m, 
-        blockNumber, ageInMinutes, dateTime
-      
-        from Contracts1m 
-        order by dateTime, volume1m, ageInMinutes desc;
-      `    
-      break;
-  }
-  query = query.replace(/^\s+|\s+$/gm, '').split('\n').join(' ')
-  console.log(query);
-
+export const getAlertsQuery = async (req,res,next) => {
+  const { volume,blocks } = req.query;
+  if (!volume || !blocks ) return next(new AppError("Missing a query parameter", 404));
+  const query = `select  MainSwaps.contract, max(MainSwaps.symbol) as symbol, sum(MainSwaps.usdVolume) as sm, max(MainSwaps.marketCap) as mc,  count(IF(MainSwaps.isBuy=1,MainSwaps.isBuy,0)) as totalBuys,  sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))/(sum(IF(MainSwaps.isBuy=-1,MainSwaps.usdVolume,0))+sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))) as buyRatio, max(MainSwaps.usdPrice)/min(MainSwaps.usdPrice) as priceRatio, (max(MainSwaps.blockNumber)-max(ContractDetails.liqAddBlock))/5 as ageInMinutes, max(MainSwaps.pairAddress) as pairAddress from MainSwaps INNER JOIN ContractDetails ON ContractDetails.contract = MainSwaps.contract where MainSwaps.blockNumber between (select max(MainSwaps.blockNumber) from MainSwaps)-${blocks}  and (select max(MainSwaps.blockNumber) from MainSwaps) group by MainSwaps.contract having sm>${volume} order by sm, ageInMinutes desc;`
   conn.query(query, function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
@@ -296,11 +218,10 @@ export const getContractsTablesVolume = async (req,res,next) => {
   });
 }
 
-
-export const getAlertsQuery = async (req,res,next) => {
-  const { volume,blocks } = req.query;
-  if (!volume || !blocks ) return next(new AppError("Missing a query parameter", 404));
-  const query = `select  MainSwaps.contract, max(MainSwaps.symbol) as symbol, sum(MainSwaps.usdVolume) as sm, max(MainSwaps.marketCap) as mc,  count(IF(MainSwaps.isBuy=1,MainSwaps.isBuy,0)) as totalBuys,  sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))/(sum(IF(MainSwaps.isBuy=-1,MainSwaps.usdVolume,0))+sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))) as buyRatio, max(MainSwaps.usdPrice)/min(MainSwaps.usdPrice) as priceRatio, (max(MainSwaps.blockNumber)-max(ContractDetails.liqAddBlock))/5 as ageInMinutes, max(MainSwaps.pairAddress) as pairAddress from MainSwaps INNER JOIN ContractDetails ON ContractDetails.contract = MainSwaps.contract where MainSwaps.blockNumber between (select max(MainSwaps.blockNumber) from MainSwaps)-${blocks}  and (select max(MainSwaps.blockNumber) from MainSwaps) group by MainSwaps.contract having sm>${volume} order by sm, ageInMinutes desc;`
+export const getLookBackByOneSequenceQuery = async (req,res,next) => {
+  const { table,blocks } = req.query;
+  if (!table || !blocks ) return next(new AppError("Missing a query parameter", 404));
+  const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${req.query.table})-${req.query.blocks} and (select max(blockNumber) from ${req.query.table});`
   conn.query(query, function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
@@ -377,23 +298,6 @@ export const deleteContract = (req, res, next) => {
   );
 }
 
-// export const getMatchingContracts = ( req, res, next) => {
-//   if (!req.body) return next(new AppError("No body with contracts", 404));
-//   const values = req.body;
-//   conn.query(
-//     "SELECT * from ContractDetails where contract in (?)",
-//     [values],
-//     function (err, data, fields) {
-//       if (err) return next(new AppError(err, 500));
-//       res.status(200).json({
-//         status: "success",
-//         length: data?.length,
-//         data: data,
-//       });
-//     }
-
-//   )
-// }
 
 // Pairs
 
@@ -696,21 +600,6 @@ CREATE TABLE TotalBuys1d(id int NOT NULL AUTO_INCREMENT,
     );
 
     
-
-
-
-
-  and have new topic watchers for liq lock and renounce. then we will find the contract and post to that contract if it exists.
-
-
-  can do that from here as well.
-
-
-
-Need a new schema for Contracts;
-
-Contract --- Symbol --- PairAddress --- DateTime --- Volume1m --- Volume5m --- Volume15m -- Volume1H --- Volume1D --- BuyRatio1M -- BuyRatio15M -- BuyRatio1D -- Age = currentBlock minus earliest pair creation
-            
 
 datetime format : YYYY-MM-DD HH:MI:SS
 
