@@ -32,24 +32,30 @@ export class DatabaseWatcher {
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
+
+        this.runVolumeChangeJobHandler();
+
+
+
+
         //this.runLookbackJob(15);
-        this.runVolumeJob(1,10000);
-        setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
+        // this.runVolumeJob(1,10000);
+        // setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
 
-        setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
+        // setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
 
-        //setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
+        // //setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
 
-        setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
+        // setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
 
-        //setInterval(()=>this.runLookBackJob(15, this.volume15m),15*60*1000);
+        // //setInterval(()=>this.runLookBackJob(15, this.volume15m),15*60*1000);
 
-        //setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+        // //setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
 
         
-        setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+        // setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
 
-        setInterval(()=>this.runVolumeJob(240, this.volume240m),240*60*1000);
+        // setInterval(()=>this.runVolumeJob(240, this.volume240m),240*60*1000);
 
 
         //to start, 5m will be only if there are a huge amount of buys, 5m only if less than hour old, 1m only for totalbuys and less than hour old
@@ -136,7 +142,106 @@ export class DatabaseWatcher {
 
     }
 
-    async runLookbackJob(time) {
+
+    async runVolumeChangeJobHandler() {
+        //ideas: 5 minutes vs last 60 minutes. 15 minutes vs last 60 minutes. 15 minutes vs last 4 hours. 5 minutes vs last 4 hours.
+        //15 minutes vs previous 15 minutes.
+
+        //what do you do if it's brand new?
+
+        //5 minutes vs previous 5 minutes.
+
+
+        const lastFiveMinutesCompareHour = await this.runCompareTimeFrameVolumeJob(5,60, 0);
+
+    }
+
+    async runCompareTimeFrameVolumeJob (time1, time2, startBlocks=0) {
+       
+        try {
+            /*parameters for query: 
+                startBlocks: shifts the end block by X blocks (shifts the end of the block range, for backtesting.) 
+                lookBackBlocks: shifts the window by X blocks (say we want to get the last 60 minutes before the last 5 minutes)
+                blocks: distance of time we want to query over ( say 25 blocks = 5 minutes)
+            */
+           
+
+
+
+
+            const blocks1 = time1*5;
+            const lookBackBlocks1 = 0;
+            
+            const { data: { data : time1Data }} = await api.get(`/api/alerts/percent/any?startBlocks=${startBlocks}&lookBackBlocks=${lookBackBlocks1}&blocks=${blocks1}`);
+
+
+            const blocks2 = time2*5;
+            const lookBackBlocks2 = blocks1;
+            const { data: { data : time2Data }} = await api.get(`/api/alerts/percent/any?startBlocks=${startBlocks}&lookBackBlocks=${lookBackBlocks2}&blocks=${blocks2}`);
+
+            for (let data of time1Data) {
+                const correspondingTime2Data = time2Data.filter(d=>data.contract == d.contract)[0];
+                if (correspondingTime2Data) {
+                    if (parseInt(data.totalBuys) > parseInt(correspondingTime2Data.totalBuys)) {
+                        console.log(`totalBuys greater! data_blockRange=${data.minBlock},${data.maxBlock}; time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
+                        data_totalBuys = ${data.totalBuys}
+                        time2Data_totalBuys = ${correspondingTime2Data.totalBuys}`)
+                    }
+                    if (parseInt(data.sm) > parseInt(correspondingTime2Data.sm)) {
+                        console.log(`volume greater! data_blockRange=${data.minBlock},${data.maxBlock}; time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
+                        data_volume = ${data.sm}
+                        time2Data_volume = ${correspondingTime2Data.sm}`)
+                    }
+                    
+                    
+
+                }
+            }
+            
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
+
+
+
+
+
+
+    async runVolumeChangeJob_ContractsTable(time1, time2) {
+
+        //get first set of minutes
+        try { 
+            //dataset 1: e.g. 5min
+            const blocks1 = time1*5;
+            const { table: table1 } = this.getTable(time1);
+            const { data: { data : time1Data }} = await api.get(`/api/contracts?table=${table1}&blocks=${blocks1}`);
+
+            //dataset 2 e.g. 60min
+            const blocks2 = time2*5;
+            const { table: table2 } = this.getTable(time2);
+
+            const { data: { data : time2Data }} = await api.get(`/api/contracts?table${table2}&blocks=${blocks2}`)
+
+            
+
+
+        } catch(e) {
+            console.log(e)
+        }
+
+        
+        //for every contract in the first response, find the contract in the second response and compare the desired metric. 
+        
+
+
+
+        
+    }
+
+
+    async runLookbackJob_old(time) {
         //change topic=241
         const blocks = time*5;
         const { table, volume } = this.getTable(blocks);

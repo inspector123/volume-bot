@@ -204,10 +204,50 @@ export const createContracts = async(req, res, next) => {
   
 }
 
+
+export const getContractsByBlockNumber = async (req, res, next) => {
+
+  const { table, blocks } = req.query;
+  if (!table || !blocks ) return next(new AppError("Missing a query parameter", 404));
+  let query;
+  if (!req.query.max) {
+    //if not max we are doing lookback for backtesting the alerts.
+    query = `select * from ${table} where blockNumber between (select max(blockNumber) from ${table})-${blocks} and (select max (blockNumber) from ${table}) `
+  } else {
+    //fill in later
+    query = `select * from ${table} where blockNumber between (select max(blockNumber) from ${table})-${blocks} and (select max (blockNumber) from ${table}) `
+  }
+  conn.query(query,function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
+}
+  //const query = `select * from ${table} where blockNumber between (select ma)`
+
 export const getAlertsQuery = async (req,res,next) => {
   const { volume,blocks } = req.query;
   if (!volume || !blocks ) return next(new AppError("Missing a query parameter", 404));
   const query = `select  MainSwaps.contract, max(MainSwaps.symbol) as symbol, sum(MainSwaps.usdVolume) as sm, max(MainSwaps.marketCap) as mc,  sum(IF(MainSwaps.isBuy=1,MainSwaps.isBuy,0)) as totalBuys,  sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))/(sum(IF(MainSwaps.isBuy=-1,MainSwaps.usdVolume,0))+sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))) as buyRatio, max(MainSwaps.usdPrice)/min(MainSwaps.usdPrice) as priceRatio, (max(MainSwaps.blockNumber)-max(ContractDetails.liqAddBlock))/5 as ageInMinutes, max(MainSwaps.pairAddress) as pairAddress from MainSwaps INNER JOIN ContractDetails ON ContractDetails.contract = MainSwaps.contract where MainSwaps.blockNumber between (select max(MainSwaps.blockNumber) from MainSwaps)-${blocks}  and (select max(MainSwaps.blockNumber) from MainSwaps) group by MainSwaps.contract having sm>${volume} order by sm, ageInMinutes desc;`
+  conn.query(query, function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
+}
+
+
+export const getLookBackQuery_AnyTimeFrame = async (req,res,next) => {
+  const { blocks } = req.query;
+  if ( !blocks ) return next(new AppError("Missing a query parameter", 404));
+  const query = `select  MainSwaps.contract, (select max(blockNumber) from MainSwaps)-${req.query.lookBackBlocks}-${req.query.blocks} as minBlock, (select max(blockNumber) from MainSwaps)-${req.query.startBlocks}-${req.query.lookBackBlocks} as maxBlock, max(MainSwaps.symbol) as symbol, sum(MainSwaps.usdVolume) as sm, max(MainSwaps.marketCap) as mc,  sum(IF(MainSwaps.isBuy=1,MainSwaps.isBuy,0)) as totalBuys,  sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))/(sum(IF(MainSwaps.isBuy=-1,MainSwaps.usdVolume,0))+sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))) as buyRatio, max(MainSwaps.usdPrice)/min(MainSwaps.usdPrice) as priceRatio, (max(MainSwaps.blockNumber)-max(ContractDetails.liqAddBlock))/5 as ageInMinutes, max(MainSwaps.pairAddress) as pairAddress from MainSwaps INNER JOIN ContractDetails ON ContractDetails.contract = MainSwaps.contract where MainSwaps.blockNumber between (select max(blockNumber) from MainSwaps)-${req.query.lookBackBlocks}-${req.query.blocks} and (select max(blockNumber) from MainSwaps)-${req.query.startBlocks}-${req.query.lookBackBlocks} group by MainSwaps.contract order by sm, ageInMinutes desc;`
+  console.log(query)
   conn.query(query, function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
