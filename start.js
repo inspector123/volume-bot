@@ -26,6 +26,7 @@ CHAT_ID_ALERTS_TO1M,
 CHAT_ID_ALERTS_TO10M,
 CHAT_ID_ALERTS_TO1B,
 CHAT_ID_ETHTOPIC,
+BACKTESTING_CHATID,
     PORT
  } = process.env;
 const app = express();
@@ -74,10 +75,13 @@ switch(process.env.PROGRAM) {
         latestWatcher.start();
         break;
     case "DBWATCHER":
-        const databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, CHAT_ID_ETHTOPIC);
+        const databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, CHAT_ID_ETHTOPIC, archiveNodeUrl);
         databaseWatcher.start();
         break;
     case "TEST":
+        databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, BACKTESTING_CHATID, archiveNodeUrl);
+        databaseWatcher.startTest();
+        break;
         //await LatestBlockWatcher.processWallets();
 
     default: 

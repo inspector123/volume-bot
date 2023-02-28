@@ -1,6 +1,7 @@
 
 import api from "./api/utils/axios.js"
 import {Telegraf} from "telegraf"
+import { ethers } from 'ethers';
 
 export class DatabaseWatcher {
 
@@ -9,64 +10,47 @@ export class DatabaseWatcher {
     to1m = 4;
     to10m = 6;
     to1b  = 8;
-    volume1m = 500000;
-    volume5m = 500000;
-    volume15m = 700000;
-    volume30m = 2500000;
-    volume60m = 10000000;
+    volume1m = 5000;
+    volume5m = 7500;
+    volume15m = 30000;
+    volume30m = 45000;
+    volume60m = 100000;
     volume240m = 25000000;
-    volume10MMinThreshold = 40000;
+    volume10MMinThreshold = 75000;
     volume1BMinThreshold = 100000;
     contractsToIgnore = [];
+    archiveProvider;
     PercentChangeThreshold = {
         m15: 100,
         m60: 100
     }
+    buyThreshold = 50;
     ageThreshold = 16;
 
-    constructor(volumeBotKey, chatId) {
+    constructor(volumeBotKey, chatId, archiveNodeUrl) {
         this.volumeBot = new Telegraf(volumeBotKey);
         this.chatId = chatId;
+        this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
         
     }
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.setUpCommands();
+        setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
+
+        setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
+
+        setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
+        
+        setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+
+    }
+
+    async startTest() {
+        this.setUpCommands();
 
         this.runVolumeChangeJobHandler();
 
-
-
-
-        //this.runLookbackJob(15);
-        // this.runVolumeJob(1,10000);
-        // setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
-
-        // setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
-
-        // //setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
-
-        // setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
-
-        // //setInterval(()=>this.runLookBackJob(15, this.volume15m),15*60*1000);
-
-        // //setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
-
-        
-        // setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
-
-        // setInterval(()=>this.runVolumeJob(240, this.volume240m),240*60*1000);
-
-
-        //to start, 5m will be only if there are a huge amount of buys, 5m only if less than hour old, 1m only for totalbuys and less than hour old
-
-        //15m will be checking from the last 15m
-        
-        //60m
-
-        //5m alert only if what??
-
-        //5m volume alert will fire too much.
     }
 
     async getAlert(blocks, volume) {
@@ -112,15 +96,16 @@ export class DatabaseWatcher {
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
                             messageText = this.fixText(messageText)
-                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId});
+                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
                         }
                     }
                     for (let coin of marketCapAlerts) {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
                         if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
                         else {
-                            if (age <= this.ageThreshold && totalBuys >= 100) {
+                            if (age <= this.ageThreshold && totalBuys >= this.buyThreshold) {
                                 let messageText = `$${symbol}: Over 100 buys spotted on new coin!
+                                Volume: ${sm}
                                 MC: ${mc}
                             Total buys: ${totalBuys}
                             Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
@@ -129,7 +114,7 @@ export class DatabaseWatcher {
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
                             messageText = this.fixText(messageText)
-                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId});
+                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
                             }
                         }
                     }
@@ -152,11 +137,16 @@ export class DatabaseWatcher {
         //5 minutes vs previous 5 minutes.
 
 
-        const lastFiveMinutesCompareHour = await this.runCompareTimeFrameVolumeJob(5,60, 0);
+        //const lastFiveMinutesCompareHour = await this.runCompareTimeFrameVolumeJob(5,60, 0);
+        //7200, 7175, 7150, etc.
+        for (let i = 12200; i > 0; i = i-25) {
+            console.log(i)
+            await this.runCompareTimeFrameVolumeJob(15,240,i);
+        }
 
     }
 
-    async runCompareTimeFrameVolumeJob (time1, time2, startBlocks=0) {
+    async runCompareTimeFrameVolumeJob (time1, time2, startBlocks) {
        
         try {
             /*parameters for query: 
@@ -164,16 +154,11 @@ export class DatabaseWatcher {
                 lookBackBlocks: shifts the window by X blocks (say we want to get the last 60 minutes before the last 5 minutes)
                 blocks: distance of time we want to query over ( say 25 blocks = 5 minutes)
             */
-           
-
-
-
-
             const blocks1 = time1*5;
             const lookBackBlocks1 = 0;
             
-            const { data: { data : time1Data }} = await api.get(`/api/alerts/percent/any?startBlocks=${startBlocks}&lookBackBlocks=${lookBackBlocks1}&blocks=${blocks1}`);
-
+            let { data: { data : time1Data }} = await api.get(`/api/alerts/percent/any?startBlocks=${startBlocks}&lookBackBlocks=${lookBackBlocks1}&blocks=${blocks1}`);
+            time1Data = time1Data.filter(data=>data.sm>1000 && data.totalBuys>1 && data.mc<10000000)
 
             const blocks2 = time2*5;
             const lookBackBlocks2 = blocks1;
@@ -183,14 +168,33 @@ export class DatabaseWatcher {
                 const correspondingTime2Data = time2Data.filter(d=>data.contract == d.contract)[0];
                 if (correspondingTime2Data) {
                     if (parseInt(data.totalBuys) > parseInt(correspondingTime2Data.totalBuys)) {
-                        console.log(`totalBuys greater! data_blockRange=${data.minBlock},${data.maxBlock}; time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
+                        let text = `totalBuys greater! data_blockRange=${data.minBlock},${data.maxBlock}; time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
+                        symbol=${data.symbol}
+                        contract=${data.contract}
                         data_totalBuys = ${data.totalBuys}
-                        time2Data_totalBuys = ${correspondingTime2Data.totalBuys}`)
+                        time2Data_totalBuys = ${correspondingTime2Data.totalBuys}
+                        volume: ${data.sm}
+                        chart=https://dextools.io/app/ether/pair-explorer/${data.pairAddress}
+                        time: ${new Date((await this.archiveProvider.getBlock(data.maxBlock)).timestamp*1000)}
+                        `
+                        console.log(text)
+                        text = this.fixText(text);
+                        //await this.volumeBot.telegram.sendMessage(this.chatId, text, {parse_mode: 'MarkdownV2'})
                     }
                     if (parseInt(data.sm) > parseInt(correspondingTime2Data.sm)) {
-                        console.log(`volume greater! data_blockRange=${data.minBlock},${data.maxBlock}; time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
-                        data_volume = ${data.sm}
-                        time2Data_volume = ${correspondingTime2Data.sm}`)
+                        let text = `volume greater! 
+                        data_blockRange=${data.minBlock},${data.maxBlock}; 
+                        time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
+                        symbol=${data.symbol}
+                        contract=${data.contract}
+                        data_sm = ${data.sm}
+                        time2Data_sm = ${correspondingTime2Data.sm}
+                        chart=https://dextools.io/app/ether/pair-explorer/${data.pairAddress}
+                        time: ${new Date((await this.archiveProvider.getBlock(data.maxBlock)).timestamp*1000)}
+                        `;
+                        console.log(text)
+                        text = this.fixText(text);
+                        //await this.volumeBot.telegram.sendMessage(this.chatId, text, {parse_mode: 'MarkdownV2'})
                     }
                     
                     
@@ -339,7 +343,8 @@ export class DatabaseWatcher {
             set threshold for volume alerts.
             /turnoff {contract}: ignore contract. current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.length : `0`}
             /ageThreshold {number}: threshold for spotting buys at start (current=${this.ageThreshold})
-            `)
+            /buyThreshold {number}: threshold for spotting buys at start (current=${this.buyThreshold})
+            `).catch(e=>console.log(e))
         } catch(e) {
             console.log(e)
         }
@@ -359,10 +364,10 @@ export class DatabaseWatcher {
 
     this.volumeBot.command('gettopicid', (ctx)=>{
         try {
-            this.volumeBot.telegram.sendMessage(ctx.chat.id, `${ctx.update.message.reply_to_message.message_thread_id}`, {reply_to_message_id: ctx.update.message.reply_to_message.message_thread_id})
+            this.volumeBot.telegram.sendMessage(ctx.chat.id, `${ctx.update.message.reply_to_message.message_thread_id}`, {reply_to_message_id: ctx.update.message.reply_to_message.message_thread_id}).catch(e=>console.log(e))
         } catch(e) {
             console.log(e);
-            this.volumeBot.telegram.sendMessage(ctx.chat.id, `${e}`)
+            this.volumeBot.telegram.sendMessage(ctx.chat.id, `${e}`).catch(e=>console.log(e))
         }
     })
 
@@ -394,14 +399,14 @@ export class DatabaseWatcher {
     })
     this.volumeBot.launch();
 
-    this.volumeBot.catch((err, ctx) => {
-        if (err.code === 429) {
-          console.log('Too Many Requests error');
-          // handle the error here, e.g. wait for a certain amount of time before making the next request
-        } else {
-          console.log('Error occurred:', err);
-        }
-      });
+    // this.volumeBot.catch((err, ctx) => {
+    //     if (err.code === 429) {
+    //       console.log('Too Many Requests error');
+    //       // handle the error here, e.g. wait for a certain amount of time before making the next request
+    //     } else {
+    //       console.log('Error occurred:', err);
+    //     }
+    //   });
 }
 
 
