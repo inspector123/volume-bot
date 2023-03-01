@@ -370,11 +370,25 @@ export class DatabaseWatcher {
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `${e}`).catch(e=>console.log(e))
         }
     })
-
     this.volumeBot.command('testbreak', ()=>{
         // for (let i = 0; i<500; i++) {
         //     this.volumeBot.telegram.sendMessage("-706531507",'test')
         // }
+    })
+    this.volumeBot.command('turnbackon', (ctx)=>{
+        try {
+            const contract = ctx.message.text.match(/\s(0x[0-9A-Za-z]{40})/)[1];
+            console.log(contract)
+            if (!contract) throw new Error('no contract provided')
+            if (!this.contractsToIgnore.includes(contract)) throw new Error('contract not in turned off list')
+            if (contract && this.contractsToIgnore.includes(contract)) {
+                this.contractsToIgnore = this.contractsToIgnore.filter(c=> c.contract.toLowerCase() == contract || c.contract == contract);
+                this.volumeBot.telegram.sendMessage(ctx.chat.id, `turned alerts back on  for ${contract}`).catch(e=>console.log(e))
+            }
+        } catch(e) {
+            this.volumeBot.telegram.sendMessage(ctx.chat.id, `error ${e}`).catch(e=>console.log(e))
+            console.log(e);
+        }
     })
 
 
