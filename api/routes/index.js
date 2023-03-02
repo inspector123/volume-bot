@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllSwaps, getBlock,createContractOrGetMatchingContracts, createSwap,deleteContract, createPair, getPairByPairAddress, getAllPairs, getAllContracts, createContracts , getAlertsQuery, customSql, getLookBackByOneSequenceQuery, getLookBackQuery_AnyTimeFrame} from '../controllers/queries.js';
+import { getAllSwaps, getBlock,createContractOrGetMatchingContracts, createSwap,deleteContract, createPair, getPairByPairAddress, getAllPairs, getAllContracts, createContracts , getAlertsQuery, customSql, getLookBackByOneSequenceQuery, getLookBackQuery_AnyTimeFrame, Web_MainSwapsGroupQuery} from '../controllers/queries.js';
 const router = express.Router();
 //
 
@@ -39,8 +39,12 @@ router.route("/api/pairs")
 router.route("/api/pairs/:pairAddress")
     .get(getPairByPairAddress)
 
+//Alerts / other (web, etc.)
+
 router.route("/api/alerts").get(getAlertsQuery);
 router.route("/api/alerts/percent/any").get(getLookBackQuery_AnyTimeFrame);
+
+router.route("api/swaps/grouped").get(Web_MainSwapsGroupQuery);
 
 
 export default router;

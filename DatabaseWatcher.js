@@ -342,6 +342,7 @@ export class DatabaseWatcher {
             /volume1BMinThreshold {number} (current=${this.volume1BMinThreshold})
             set threshold for volume alerts.
             /turnoff {contract}: ignore contract. current turned off: ${this.contractsToIgnore.length ? this.contractsToIgnore.length : `0`}
+            /turnbackon {contract}: turn alerts back on for contract. (doesnt work lol)
             /ageThreshold {number}: threshold for spotting buys at start (current=${this.ageThreshold})
             /buyThreshold {number}: threshold for spotting buys at start (current=${this.buyThreshold})
             `).catch(e=>console.log(e))
@@ -382,7 +383,7 @@ export class DatabaseWatcher {
             if (!contract) throw new Error('no contract provided')
             if (!this.contractsToIgnore.includes(contract)) throw new Error('contract not in turned off list')
             if (contract && this.contractsToIgnore.includes(contract)) {
-                this.contractsToIgnore = this.contractsToIgnore.filter(c=> c.contract.toLowerCase() == contract || c.contract == contract);
+                this.contractsToIgnore = this.contractsToIgnore.filter(c=> c.toLowerCase() != contract || c != contract);
                 this.volumeBot.telegram.sendMessage(ctx.chat.id, `turned alerts back on  for ${contract}`).catch(e=>console.log(e))
             }
         } catch(e) {
