@@ -2,7 +2,7 @@ import mysql from 'mysql2';
 import * as dotenv from 'dotenv';
 dotenv.config();
 const conn = mysql.createPool({
- host: "127.0.0.1",
+ host: process.env.DB_ISREMOTE ? "192.168.0.165" : "127.0.0.1",
  port: 3306,
  user: "ethDBUser",
  password: process.env.DB_PASSWORD,
