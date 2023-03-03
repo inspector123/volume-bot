@@ -293,10 +293,24 @@ export const customSql = async (req,res,next) => {
 }
 
 export const Web_MainSwapsGroupQuery = (req,res,next) => {
+
+  console.log('fdsadasfdsfa')
   if (!req.query.blocks) req.query.blocks=300;
   if (!req.query.marketCap) req.query.marketCap = 1000000000;
+  if (!req.query.volume) req.query.volume = 0;
+  if (!req.query.totalBuys) req.query.totalBuys = 0;
+  if (!req.query.buyRatio) req.query.buyRatio = 0;
+  console.log('fdsadasfdsfa')
   const ageQuery = req.query.ageInMinutes ? `and ageInMinutes<${req.query.ageInMinutes}` : ''
   const query = `select  MainSwaps.contract, max(MainSwaps.symbol) as symbol, sum(MainSwaps.usdVolume) as volume, max(MainSwaps.marketCap) as maxMarketCap,  sum(IF(MainSwaps.isBuy=1,MainSwaps.isBuy,0)) as totalBuys,  sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))/(sum(IF(MainSwaps.isBuy=-1,MainSwaps.usdVolume,0))+sum(IF(MainSwaps.isBuy=1,MainSwaps.usdVolume,0))) as buyRatio, max(MainSwaps.usdPrice)/min(MainSwaps.usdPrice) as priceRatio, (max(MainSwaps.blockNumber)-max(ContractDetails.liqAddBlock))/5 as ageInMinutes, max(MainSwaps.pairAddress) as pairAddress from MainSwaps INNER JOIN ContractDetails ON ContractDetails.contract = MainSwaps.contract where (select max(blockNumber) from MainSwaps)-${req.query.blocks} and (select max(blockNumber) from MainSwaps) having volume>${req.query.volume} and totalBuys>${req.query.totalBuys} and maxMarketCap<${req.query.marketCap} ${ageQuery} and buyRatio > ${req.query.buyRatio} group by MainSwaps.contract order by volume, ageInMinutes desc;`
+  conn.query(query, function (err, data, fields) {
+    if(err) return next(new AppError(err))
+    res.status(200).json({
+      status: "success",
+      length: data?.length,
+      data: data,
+    });
+  });
 }
 // export const updateContract = (req, res, next) => {
 //   if (!req.body.contract) {

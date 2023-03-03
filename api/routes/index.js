@@ -44,7 +44,7 @@ router.route("/api/pairs/:pairAddress")
 router.route("/api/alerts").get(getAlertsQuery);
 router.route("/api/alerts/percent/any").get(getLookBackQuery_AnyTimeFrame);
 
-router.route("api/swaps/grouped").get(Web_MainSwapsGroupQuery);
+router.route("/api/swaps/grouped").get(Web_MainSwapsGroupQuery);
 
 
 export default router;

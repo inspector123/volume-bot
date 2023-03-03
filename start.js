@@ -82,6 +82,8 @@ switch(process.env.PROGRAM) {
         databaseWatcher = new DatabaseWatcher(VOLUME_BOT_KEY, BACKTESTING_CHATID, archiveNodeUrl);
         databaseWatcher.startTest();
         break;
+    case "API":
+        break;
         //await LatestBlockWatcher.processWallets();
 
     default: 

@@ -104,7 +104,7 @@ export class DatabaseWatcher {
                         if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
                         else {
                             if (age <= this.ageThreshold && totalBuys >= this.buyThreshold) {
-                                let messageText = `$${symbol}: Over 100 buys spotted on new coin!
+                                let messageText = `$${symbol}: Over ${this.buyThreshold} buys spotted on new coin!
                                 Volume: ${sm}
                                 MC: ${mc}
                             Total buys: ${totalBuys}
