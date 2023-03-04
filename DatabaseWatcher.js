@@ -10,14 +10,14 @@ export class DatabaseWatcher {
     to1m = 4;
     to10m = 6;
     to1b  = 8;
-    volume1m = 5000;
-    volume5m = 7500;
-    volume15m = 30000;
+    volume1m = 7000;
+    volume5m = 9000;
+    volume15m = 25000;
     volume30m = 45000;
     volume60m = 100000;
     volume240m = 25000000;
-    volume10MMinThreshold = 75000;
-    volume1BMinThreshold = 100000;
+    volume10MMinThreshold = 60000;
+    volume1BMinThreshold = 1000000;
     contractsToIgnore = [];
     archiveProvider;
     PercentChangeThreshold = {
@@ -26,6 +26,10 @@ export class DatabaseWatcher {
     }
     buyThreshold = 50;
     ageThreshold = 16;
+    // ignoredAlerts = {
+    //     to100k: {m1: [], m5: [], m15:[]},
+    //     to1m: {m1: [], m5: [], m15:[]}
+    // }
 
     constructor(volumeBotKey, chatId, archiveNodeUrl) {
         this.volumeBot = new Telegraf(volumeBotKey);
@@ -77,7 +81,7 @@ export class DatabaseWatcher {
             const alerts = await this.getAlert(blocks, volume);
             console.log(time, volume, alerts.length)
             if (alerts.length) {
-                let marketCaps = [{mc: 100000, topicId: this.to100k, volumeMin: 0 },{mc: 1000000, topicId: this.to1m, volumeMin: 0 },{mc: 10000000, topicId: this.to10m, volumeMin: this.volume10MMinThreshold },{mc: 1000000000, topicId: this.to1b, volumeMin: this.volume1BMinThreshold }];
+                let marketCaps = [{mc: 100000, topicId: this.to100k, volumeMin: 0,ignoredAlerts: []},{mc: 1000000, topicId: this.to1m, volumeMin: 0, ignoredAlerts:[]},{mc: 10000000, topicId: this.to10m, volumeMin: this.volume10MMinThreshold },{mc: 1000000000, topicId: this.to1b, volumeMin: this.volume1BMinThreshold }];
                 for (let i in marketCaps) {
                     const marketCapAlerts = alerts.filter(a=> {
                         if (i > 0) {
@@ -86,7 +90,7 @@ export class DatabaseWatcher {
                     })
                     for (let coin of marketCapAlerts) {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
+                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract) && marketCaps[i].ignoredAlerts.includes(contract)) continue;
                         else {
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}
@@ -95,29 +99,30 @@ export class DatabaseWatcher {
                             Contract: \`\`\`${contract}\`\`\`
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
+                            marketCaps[i].ignoredAlerts=[...marketCaps[i].ignoredAlerts, contract]
                             messageText = this.fixText(messageText)
                             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
                         }
                     }
-                    for (let coin of marketCapAlerts) {
-                        let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
-                        else {
-                            if (age <= this.ageThreshold && totalBuys >= this.buyThreshold) {
-                                let messageText = `$${symbol}: Over ${this.buyThreshold} buys spotted on new coin!
-                                Volume: ${sm}
-                                MC: ${mc}
-                            Total buys: ${totalBuys}
-                            Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
-                            Contract age in minutes: ${age} 
-                            Contract: \`\`\`${contract}\`\`\`
-                            Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-                            `
-                            messageText = this.fixText(messageText)
-                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
-                            }
-                        }
-                    }
+                    // for (let coin of marketCapAlerts) {
+                    //     let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                    //     if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
+                    //     else {
+                    //         if (age <= this.ageThreshold && totalBuys >= this.buyThreshold) {
+                    //             let messageText = `$${symbol}: Over ${this.buyThreshold} buys spotted on new coin!
+                    //             Volume: ${sm}
+                    //             MC: ${mc}
+                    //         Total buys: ${totalBuys}
+                    //         Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
+                    //         Contract age in minutes: ${age} 
+                    //         Contract: \`\`\`${contract}\`\`\`
+                    //         Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                    //         `
+                    //         messageText = this.fixText(messageText)
+                    //         this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
+                    //         }
+                    //     }
+                    // }
                     
                 }
             }
