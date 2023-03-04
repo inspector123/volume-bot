@@ -9,6 +9,7 @@ const conn = mysql.createPool({
  database: process.env.DB_NAME,
  multipleStatements: true
 });
+console.log(conn)
 
 // conn.connect((err, res) => {
 //     if (err) console.log(err);
