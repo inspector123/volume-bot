@@ -39,7 +39,9 @@ export class DatabaseWatcher {
     }
     async start() {
         //setInterval(()=>run1mJob(),600000);
+
         this.setUpCommands();
+        this.runVolumeJob(1, this.volume1m);
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
 
         setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
