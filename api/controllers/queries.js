@@ -258,9 +258,9 @@ export const getLookBackQuery_AnyTimeFrame = async (req,res,next) => {
 }
 
 export const getLookBackByOneSequenceQuery = async (req,res,next) => {
-  const { table,blocks } = req.query;
-  if (!table || !blocks ) return next(new AppError("Missing a query parameter", 404));
-  const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${req.query.table})-${req.query.blocks} and (select max(blockNumber) from ${req.query.table});`
+  const { table,blocks, marketCap } = req.query;
+  if (!table || !blocks || !marketCap ) return next(new AppError("Missing a query parameter", 404));
+  const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${req.query.table})-${req.query.blocks} and (select max(blockNumber) from ${req.query.table}) and marketCap < ${req.query.marketCap};`
   conn.query(query, function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
@@ -578,6 +578,21 @@ CREATE TABLE Contracts1h(id int NOT NULL AUTO_INCREMENT,
   price double,
   volume1h double,
   buyRatio1h double,
+  ageInMinutes double,
+  PRIMARY KEY(id)
+    );
+
+    CREATE TABLE Contracts4h(id int NOT NULL AUTO_INCREMENT,
+  contract varchar(50),
+  symbol varchar(50),
+  dateTime DATETIME, 
+  blockNumber double,
+  marketCap double,
+  price double,
+  volume4h double,
+  buyRatio4h double,
+  totalBuys double,
+  totalSells double,
   ageInMinutes double,
   PRIMARY KEY(id)
     );

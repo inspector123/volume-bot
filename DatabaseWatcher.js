@@ -41,7 +41,17 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
 
         this.setUpCommands();
-        this.runVolumeJob(1, this.volume1m);
+
+
+        this.runContractsJob(5);
+
+
+       // this.setIntervals();
+        
+
+    }
+
+    async setIntervals() {
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
 
         setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
@@ -49,7 +59,6 @@ export class DatabaseWatcher {
         setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
         
         setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
-
     }
 
     async startTest() {
@@ -68,9 +77,9 @@ export class DatabaseWatcher {
         }
     }
 
-    async getLookBackAlert(blocks, table) {
+    async getLookBackAlert(table,blocks) {
         try {
-            const response = await api.get(`/api/contracts?table=${table}&blocks=${blocks}`)
+            const response = await api.get(`/api/contracts?table=${table}&blocks=${blocks}&marketCap=10000000`)
             return response.data.data;
         } catch(e) {
             console.log(e.response.data, 'error')
@@ -132,6 +141,17 @@ export class DatabaseWatcher {
             console.log(e);
         }
 
+    }
+
+    async runContractsJob(time) {
+        const blocks = time*5;
+        const { table, volume } = this.getTable(blocks);
+        const alertData = await this.getLookBackAlert(table, blocks);
+
+
+        for (let i in alertData) {
+            console.log(alertData[i].blockNumber)
+        }
     }
 
 
