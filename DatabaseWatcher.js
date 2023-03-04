@@ -18,6 +18,7 @@ export class DatabaseWatcher {
     volume240m = 25000000;
     volume10MMinThreshold = 60000;
     volume1BMinThreshold = 1000000;
+    newVolumeAlertsTopic = 3102;
     contractsToIgnore = [];
     archiveProvider;
     PercentChangeThreshold = {
@@ -41,12 +42,7 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
 
         this.setUpCommands();
-
-
-        this.runContractsJob(5);
-
-
-       // this.setIntervals();
+        this.setIntervals();
         
 
     }
@@ -56,9 +52,14 @@ export class DatabaseWatcher {
 
         setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
 
+        setInterval(()=>this.runContractsJob(5),5*60*1000);
+        
+
         setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
         
         setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
+
+        setInterval(()=>this.runContractsJob(60),60*60*1000);
     }
 
     async startTest() {
@@ -86,13 +87,22 @@ export class DatabaseWatcher {
         }
     }
 
+    async getLastFromContractsTable(table) {
+        try {
+            const response = await api.get(`/api/contracts?table=${table}&marketCap=10000000`)
+            return response.data.data;
+        } catch(e) {
+            console.log(e.response.data, 'error')
+        }
+    }
+
     async runVolumeJob(time, volume) {
         try { 
             const blocks = time*5;
             const alerts = await this.getAlert(blocks, volume);
             console.log(time, volume, alerts.length)
             if (alerts.length) {
-                let marketCaps = [{mc: 100000, topicId: this.to100k, volumeMin: 0,ignoredAlerts: []},{mc: 1000000, topicId: this.to1m, volumeMin: 0, ignoredAlerts:[]},{mc: 10000000, topicId: this.to10m, volumeMin: this.volume10MMinThreshold },{mc: 1000000000, topicId: this.to1b, volumeMin: this.volume1BMinThreshold }];
+                let marketCaps = [{mc: 100000, topicId: this.to100k, volumeMin: 0,ignoredAlerts: []},{mc: 1000000, topicId: this.to1m, volumeMin: 0, ignoredAlerts:[]},{mc: 10000000, topicId: this.to10m, volumeMin: this.volume10MMinThreshold , ignoredAlerts:[]},{mc: 1000000000, topicId: this.to1b, volumeMin: this.volume1BMinThreshold , ignoredAlerts:[]}];
                 for (let i in marketCaps) {
                     const marketCapAlerts = alerts.filter(a=> {
                         if (i > 0) {
@@ -144,166 +154,59 @@ export class DatabaseWatcher {
     }
 
     async runContractsJob(time) {
-        const blocks = time*5;
-        const { table, volume } = this.getTable(blocks);
-        const alertData = await this.getLookBackAlert(table, blocks);
-
-
-        for (let i in alertData) {
-            console.log(alertData[i].blockNumber)
-        }
-    }
-
-
-    async runVolumeChangeJobHandler() {
-        //ideas: 5 minutes vs last 60 minutes. 15 minutes vs last 60 minutes. 15 minutes vs last 4 hours. 5 minutes vs last 4 hours.
-        //15 minutes vs previous 15 minutes.
-
-        //what do you do if it's brand new?
-
-        //5 minutes vs previous 5 minutes.
-
-
-        //const lastFiveMinutesCompareHour = await this.runCompareTimeFrameVolumeJob(5,60, 0);
-        //7200, 7175, 7150, etc.
-        for (let i = 12200; i > 0; i = i-25) {
-            console.log(i)
-            await this.runCompareTimeFrameVolumeJob(15,240,i);
-        }
-
-    }
-
-    async runCompareTimeFrameVolumeJob (time1, time2, startBlocks) {
-       
         try {
-            /*parameters for query: 
-                startBlocks: shifts the end block by X blocks (shifts the end of the block range, for backtesting.) 
-                lookBackBlocks: shifts the window by X blocks (say we want to get the last 60 minutes before the last 5 minutes)
-                blocks: distance of time we want to query over ( say 25 blocks = 5 minutes)
-            */
-            const blocks1 = time1*5;
-            const lookBackBlocks1 = 0;
-            
-            let { data: { data : time1Data }} = await api.get(`/api/alerts/percent/any?startBlocks=${startBlocks}&lookBackBlocks=${lookBackBlocks1}&blocks=${blocks1}`);
-            time1Data = time1Data.filter(data=>data.sm>1000 && data.totalBuys>1 && data.mc<10000000)
+            const blocks = time*5;
+            const { table, volume } = this.getTable(blocks);
+            const alertDataSingle = await this.getLookBackAlert(table, 0);
+            console.log([... new Set(alertDataSingle.map(r=>r.blockNumber))])
 
-            const blocks2 = time2*5;
-            const lookBackBlocks2 = blocks1;
-            const { data: { data : time2Data }} = await api.get(`/api/alerts/percent/any?startBlocks=${startBlocks}&lookBackBlocks=${lookBackBlocks2}&blocks=${blocks2}`);
+            for (let i in alertDataSingle) {
+                if (table == 'Contracts5m') {
+                    if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m<6000) {
+                        let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. MC:${mc}
+                                Age: ${alertDataSingle[i].ageInMinutes}
+                                Buys: ${alertDataSingle[i].totalBuys}
+                                Buy Ratio: ${alertDataSingle[i].buyRatio5m}
+                                Volume: ${alertDataSingle[i].volume5m}
+                                Contract: \`\`\`${contract}\`\`\`
+                                Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-            for (let data of time1Data) {
-                const correspondingTime2Data = time2Data.filter(d=>data.contract == d.contract)[0];
-                if (correspondingTime2Data) {
-                    if (parseInt(data.totalBuys) > parseInt(correspondingTime2Data.totalBuys)) {
-                        let text = `totalBuys greater! data_blockRange=${data.minBlock},${data.maxBlock}; time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
-                        symbol=${data.symbol}
-                        contract=${data.contract}
-                        data_totalBuys = ${data.totalBuys}
-                        time2Data_totalBuys = ${correspondingTime2Data.totalBuys}
-                        volume: ${data.sm}
-                        chart=https://dextools.io/app/ether/pair-explorer/${data.pairAddress}
-                        time: ${new Date((await this.archiveProvider.getBlock(data.maxBlock)).timestamp*1000)}
-                        `
-                        console.log(text)
-                        text = this.fixText(text);
-                        //await this.volumeBot.telegram.sendMessage(this.chatId, text, {parse_mode: 'MarkdownV2'})
+                                This alert was designed from ODOGE launch.
+                                age<11,totalBuys>20,buyRatio==1,volume5m>6000
+                                `
+                                console.log(messageText)
+                                messageText = this.fixText(messageText)
+                                this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
                     }
-                    if (parseInt(data.sm) > parseInt(correspondingTime2Data.sm)) {
-                        let text = `volume greater! 
-                        data_blockRange=${data.minBlock},${data.maxBlock}; 
-                        time2Data_blockRange=${correspondingTime2Data.minBlock},${correspondingTime2Data.maxBlock}
-                        symbol=${data.symbol}
-                        contract=${data.contract}
-                        data_sm = ${data.sm}
-                        time2Data_sm = ${correspondingTime2Data.sm}
-                        chart=https://dextools.io/app/ether/pair-explorer/${data.pairAddress}
-                        time: ${new Date((await this.archiveProvider.getBlock(data.maxBlock)).timestamp*1000)}
-                        `;
-                        console.log(text)
-                        text = this.fixText(text);
-                        //await this.volumeBot.telegram.sendMessage(this.chatId, text, {parse_mode: 'MarkdownV2'})
+                }
+                if (table == 'Contracts1h') {
+                    if (alertDataSingle[i].marketCap < 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
+                        `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${mc}
+                                Age: ${alertDataSingle[i].ageInMinutes}
+                                Buys: ${alertDataSingle[i].totalBuys}
+                                Buy Ratio: ${alertDataSingle[i].buyRatio1h}
+                                Volume: ${alertDataSingle[i].volume1h}
+                                Contract: \`\`\`${contract}\`\`\`
+                                Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                                
+                                This alert was designed from SIGIL launch.
+                                mc>50000,volume1h>20000,totalBuys>100,age>121
+                                `
+                                console.log(messageText)
+                                messageText = this.fixText(messageText)
+                                this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
                     }
-                    
-                    
-
                 }
             }
-            
         } catch(e) {
-            console.log(e)
+            console.log(e);
+            let messageText = `error sending contracts message`
+            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
         }
     }
 
 
-
-
-
-
-
-    async runVolumeChangeJob_ContractsTable(time1, time2) {
-
-        //get first set of minutes
-        try { 
-            //dataset 1: e.g. 5min
-            const blocks1 = time1*5;
-            const { table: table1 } = this.getTable(time1);
-            const { data: { data : time1Data }} = await api.get(`/api/contracts?table=${table1}&blocks=${blocks1}`);
-
-            //dataset 2 e.g. 60min
-            const blocks2 = time2*5;
-            const { table: table2 } = this.getTable(time2);
-
-            const { data: { data : time2Data }} = await api.get(`/api/contracts?table${table2}&blocks=${blocks2}`)
-
-            
-
-
-        } catch(e) {
-            console.log(e)
-        }
-
-        
-        //for every contract in the first response, find the contract in the second response and compare the desired metric. 
-        
-
-
-
-        
-    }
-
-
-    async runLookbackJob_old(time) {
-        //change topic=241
-        const blocks = time*5;
-        const { table, volume } = this.getTable(blocks);
-        console.log(blocks,table)
-        let items = await this.getLookBackAlert(blocks, table);
-        //console.log(items)
-        items = items.filter(i=>i[volume] > 500);
-
-        //get all contracts so we can compare each individually
-        let contracts = [...new Set(items.map(i=>i.contract))];
-        //console.log(contracts)
-        for (let i in contracts) {
-            let contractItems = items.filter(item=>item.contract==contracts[i]);
-            //console.log(contractItems);
-            if (contractItems.length != 2) continue;
-            else {
-                let sorted = contractItems.sort((a,b)=>a.blockNumber-b.blockNumber);
-                console.log(sorted)
-                if (sorted[0][volume]/sorted[1][volume] > 2.0) {
-                    const messageText = `volume % increase on ${sorted[0].symbol}`;
-                    const textToSend = this.fixText(messageText);
-                    //this.volumeBot.telegram.sendMessage(this.chatId, textToSend, {parse_mode: 'MarkdownV2', reply_to_message_id: 241})
-                }
-            }
-        }
-
-       //
-        
-    }
-
-
+    
 
     async runEpiJob() {
         //run 1m but then check to see if in...
@@ -314,15 +217,17 @@ export class DatabaseWatcher {
     getTable(blocks){
         switch(blocks) {
             case 5: 
-                return {table: 'Contracts1m', volume: 'volume1m'};
+                return {table: 'Contracts1m', volume: 'volume1m', buyRatio: 'buyRatio1m'};
             case 25:
-                return {table: 'Contracts5m', volume: 'volume5m'};
+                return {table: 'Contracts5m', volume: 'volume5m', buyRatio: 'buyRatio5m'};
             case 75:
-                return {table: 'Contracts15m', volume: 'volume15m'};        
+                return {table: 'Contracts15m', volume: 'volume15m', buyRatio: 'buyRatio15m'};        
             case 60:
-                return {table: 'Contracts1h', volume: 'volume1h'};
+                return {table: 'Contracts1h', volume: 'volume1h', buyRatio: 'buyRatio1h'};
+            case 240:
+                return {table: 'Contracts4h', volume: 'volume4h', buyRatio: 'buyRatio4h'};
             case 1440:
-                return {table: 'Contracts1d', volume: 'volume1d'};
+                return {table: 'Contracts1d', volume: 'volume1d', buyRatio: 'buyRatio1d'};
             default:
                 return {table: '', volume: ''};
         }
