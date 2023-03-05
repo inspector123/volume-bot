@@ -43,6 +43,7 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
         this.runVolumeJob(1, this.volume1m);
         this.runContractsJob(5);
+        this.runContractsJob(60);
         this.setUpCommands();
         this.setIntervals();
         
@@ -97,7 +98,7 @@ export class DatabaseWatcher {
         try { 
             const blocks = time*5;
             const alerts = await this.getAlert(blocks, volume);
-            console.log(time, volume, alerts.length)
+            console.log(time, volume, alerts.length,  new Date().toISOString())
             if (alerts.length) {
                 let marketCaps = [{mc: 100000, topicId: this.to100k, volumeMin: 0,ignoredAlerts: []},{mc: 1000000, topicId: this.to1m, volumeMin: 0, ignoredAlerts:[]},{mc: 10000000, topicId: this.to10m, volumeMin: this.volume10MMinThreshold , ignoredAlerts:[]},{mc: 1000000000, topicId: this.to1b, volumeMin: this.volume1BMinThreshold , ignoredAlerts:[]}];
                 for (let i in marketCaps) {
@@ -117,30 +118,30 @@ export class DatabaseWatcher {
                             Contract: \`\`\`${contract}\`\`\`
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
-                            marketCaps[i].ignoredAlerts=[...marketCaps[i].ignoredAlerts, contract]
+                            marketCaps[i].ignoredAlerts=[...marketCaps[i].ignoredAlerts, contract].flat()
                             messageText = this.fixText(messageText)
                             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
                         }
                     }
-                    // for (let coin of marketCapAlerts) {
-                    //     let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                    //     if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
-                    //     else {
-                    //         if (age <= this.ageThreshold && totalBuys >= this.buyThreshold) {
-                    //             let messageText = `$${symbol}: Over ${this.buyThreshold} buys spotted on new coin!
-                    //             Volume: ${sm}
-                    //             MC: ${mc}
-                    //         Total buys: ${totalBuys}
-                    //         Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
-                    //         Contract age in minutes: ${age} 
-                    //         Contract: \`\`\`${contract}\`\`\`
-                    //         Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-                    //         `
-                    //         messageText = this.fixText(messageText)
-                    //         this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
-                    //         }
-                    //     }
-                    // }
+                    for (let coin of marketCapAlerts) {
+                        let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
+                        if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
+                        else {
+                            if (age <= this.ageThreshold && totalBuys >= this.buyThreshold) {
+                                let messageText = `$${symbol}: Over ${this.buyThreshold} buys spotted on new coin!
+                                Volume: ${sm}
+                                MC: ${mc}
+                            Total buys: ${totalBuys}
+                            Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
+                            Contract age in minutes: ${age} 
+                            Contract: \`\`\`${contract}\`\`\`
+                            Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                            `
+                            messageText = this.fixText(messageText)
+                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: 3476}).catch(e=>console.log(e));
+                            }
+                        }
+                    }
                     
                 }
             }
@@ -169,6 +170,7 @@ export class DatabaseWatcher {
     async runContractsJob(time) {
         try {
             const blocks = time*5;
+            console.log(`running ${blocks} job`)
             const { table, volume } = this.getTable(blocks);
             const alertDataSingle = await this.getLookBackAlert(table, 0);
             this.pairs = await this.getPairs()
@@ -182,7 +184,7 @@ export class DatabaseWatcher {
                                     Buys: ${alertDataSingle[i].totalBuys}
                                     Buy Ratio: ${alertDataSingle[i].buyRatio5m}
                                     Volume: ${alertDataSingle[i].volume5m}
-                                    Contract: \`\`\`${contract}\`\`\`
+                                    Contract: \`\`\`${alertDataSingle[i].contract}\`\`\`
                                     Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     This alert was designed from ODOGE launch.
@@ -200,7 +202,7 @@ export class DatabaseWatcher {
                                     Buys: ${alertDataSingle[i].totalBuys}
                                     Buy Ratio: ${alertDataSingle[i].buyRatio1h}
                                     Volume: ${alertDataSingle[i].volume1h}
-                                    Contract: \`\`\`${contract}\`\`\`
+                                    Contract: \`\`\`${alertDataSingle[i].contract}\`\`\`
                                     Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                                     
                                     This alert was designed from SIGIL launch.
@@ -215,7 +217,7 @@ export class DatabaseWatcher {
             }
         } catch(e) {
             console.log(e);
-            let messageText = `error sending contracts message`
+            let messageText = `error sending contracts message, ${e}`
             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
         }
     }
@@ -237,11 +239,11 @@ export class DatabaseWatcher {
                 return {table: 'Contracts5m', volume: 'volume5m', buyRatio: 'buyRatio5m'};
             case 75:
                 return {table: 'Contracts15m', volume: 'volume15m', buyRatio: 'buyRatio15m'};        
-            case 60:
+            case 300:
                 return {table: 'Contracts1h', volume: 'volume1h', buyRatio: 'buyRatio1h'};
-            case 240:
+            case 1200:
                 return {table: 'Contracts4h', volume: 'volume4h', buyRatio: 'buyRatio4h'};
-            case 1440:
+            case 7200:
                 return {table: 'Contracts1d', volume: 'volume1d', buyRatio: 'buyRatio1d'};
             default:
                 return {table: '', volume: ''};
