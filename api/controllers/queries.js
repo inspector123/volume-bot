@@ -376,7 +376,7 @@ export const deleteContract = (req, res, next) => {
 // get by PairAddress /api/pairs/:pairAddress
 export const getPairByPairAddress = async (req, res, next) => {
   if (!req.params) res.status(404).json({status: 404, data: "missing pair address"})
-  conn.query("SELECT * FROM Pairs WHERE pairAddress = ?",[req.params.pairAddress], function (err, data, fields) {
+  conn.query("SELECT * FROM Pairs_Distinct WHERE pairAddress = ?",[req.params.pairAddress], function (err, data, fields) {
     if(err) return next(new AppError(err))
     res.status(200).json({
       status: "success",
