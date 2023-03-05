@@ -20,6 +20,7 @@ export class DatabaseWatcher {
     volume1BMinThreshold = 1000000;
     newVolumeAlertsTopic = 3102;
     contractsToIgnore = [];
+    pairs = []
     archiveProvider;
     PercentChangeThreshold = {
         m15: 100,
@@ -40,7 +41,8 @@ export class DatabaseWatcher {
     }
     async start() {
         //setInterval(()=>run1mJob(),600000);
-
+        this.runVolumeJob(1, this.volume1m);
+        this.runContractsJob(5);
         this.setUpCommands();
         this.setIntervals();
         
@@ -49,16 +51,11 @@ export class DatabaseWatcher {
 
     async setIntervals() {
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
-
         setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
-
-        setInterval(()=>this.runContractsJob(5),5*60*1000);
-        
-
         setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
-        
         setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
 
+        setInterval(()=>this.runContractsJob(5),5*60*1000);
         setInterval(()=>this.runContractsJob(60),60*60*1000);
     }
 
@@ -153,48 +150,66 @@ export class DatabaseWatcher {
 
     }
 
+    async getPairs(){
+        try {
+            const pairsResponse = await api.get(`/api/pairs`)
+            return pairsResponse.data.data;
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
+    async getPair(contract) {
+        try {
+            return this.pairs.filter(p=>p.token0==contract||p.token1==contract)[0];
+        } catch(e) {
+            console.log(e)
+        }
+    }
     async runContractsJob(time) {
         try {
             const blocks = time*5;
             const { table, volume } = this.getTable(blocks);
             const alertDataSingle = await this.getLookBackAlert(table, 0);
-            console.log([... new Set(alertDataSingle.map(r=>r.blockNumber))])
+            this.pairs = await this.getPairs()
+            if (alertDataSingle.length) {
+                for (let i in alertDataSingle) {
+                    const pairAddress = this.getPair(alertDataSingle[i].contract);
+                    if (table == 'Contracts5m') {
+                        if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m<6000) {
+                            let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. MC:${alertDataSingle[i].marketCap}
+                                    Age: ${alertDataSingle[i].ageInMinutes}
+                                    Buys: ${alertDataSingle[i].totalBuys}
+                                    Buy Ratio: ${alertDataSingle[i].buyRatio5m}
+                                    Volume: ${alertDataSingle[i].volume5m}
+                                    Contract: \`\`\`${contract}\`\`\`
+                                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-            for (let i in alertDataSingle) {
-                if (table == 'Contracts5m') {
-                    if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m<6000) {
-                        let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. MC:${mc}
-                                Age: ${alertDataSingle[i].ageInMinutes}
-                                Buys: ${alertDataSingle[i].totalBuys}
-                                Buy Ratio: ${alertDataSingle[i].buyRatio5m}
-                                Volume: ${alertDataSingle[i].volume5m}
-                                Contract: \`\`\`${contract}\`\`\`
-                                Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-
-                                This alert was designed from ODOGE launch.
-                                age<11,totalBuys>20,buyRatio==1,volume5m>6000
-                                `
-                                console.log(messageText)
-                                messageText = this.fixText(messageText)
-                                this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+                                    This alert was designed from ODOGE launch.
+                                    age<11,totalBuys>20,buyRatio==1,volume5m>6000
+                                    `
+                                    console.log(messageText)
+                                    messageText = this.fixText(messageText)
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+                        }
                     }
-                }
-                if (table == 'Contracts1h') {
-                    if (alertDataSingle[i].marketCap < 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
-                        `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${mc}
-                                Age: ${alertDataSingle[i].ageInMinutes}
-                                Buys: ${alertDataSingle[i].totalBuys}
-                                Buy Ratio: ${alertDataSingle[i].buyRatio1h}
-                                Volume: ${alertDataSingle[i].volume1h}
-                                Contract: \`\`\`${contract}\`\`\`
-                                Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-                                
-                                This alert was designed from SIGIL launch.
-                                mc>50000,volume1h>20000,totalBuys>100,age>121
-                                `
-                                console.log(messageText)
-                                messageText = this.fixText(messageText)
-                                this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+                    if (table == 'Contracts1h') {
+                        if (alertDataSingle[i].marketCap < 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
+                            `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${mc}
+                                    Age: ${alertDataSingle[i].ageInMinutes}
+                                    Buys: ${alertDataSingle[i].totalBuys}
+                                    Buy Ratio: ${alertDataSingle[i].buyRatio1h}
+                                    Volume: ${alertDataSingle[i].volume1h}
+                                    Contract: \`\`\`${contract}\`\`\`
+                                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                                    
+                                    This alert was designed from SIGIL launch.
+                                    mc>50000,volume1h>20000,totalBuys>100,age>121
+                                    `
+                                    console.log(messageText)
+                                    messageText = this.fixText(messageText)
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+                        }
                     }
                 }
             }

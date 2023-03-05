@@ -257,18 +257,30 @@ export const getLookBackQuery_AnyTimeFrame = async (req,res,next) => {
   });
 }
 
-export const getLookBackByOneSequenceQuery = async (req,res,next) => {
-  const { table,blocks, marketCap } = req.query;
-  if (!table || !blocks || !marketCap ) return next(new AppError("Missing a query parameter", 404));
-  const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${req.query.table})-${req.query.blocks} and (select max(blockNumber) from ${req.query.table}) and marketCap < ${req.query.marketCap};`
-  conn.query(query, function (err, data, fields) {
-    if(err) return next(new AppError(err))
-    res.status(200).json({
-      status: "success",
-      length: data?.length,
-      data: data,
+export const getLookBackQuery = async (req,res,next) => {
+  const { table, blocks, marketCap } = req.query;
+  if (!table || !marketCap ) return next(new AppError("Missing a query parameter", 404));
+  if (req.query.contract && req.query.limit) {
+      const query = `select * from ${table} where blockNumber <= ( select max(blockNumber) from ${table} )-${blocks} and marketCap < ${marketCap} and contract=${req.query.contract} limit ${req.query.limit};`
+      conn.query(query, function (err, data, fields) {
+        if(err) return next(new AppError(err))
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+      });
+  } else {
+    const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${table})-${blocks} and (select max(blockNumber) from ${table}) and marketCap < ${marketCap};`
+    conn.query(query, function (err, data, fields) {
+      if(err) return next(new AppError(err))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
     });
-  });
+  }
 }
 
 export const customSql = async (req,res,next) => {
@@ -399,14 +411,25 @@ export const createPair = async (req, res, next) => {
 }
 // get all pairs : getting by pair address is too inefficient.
 export const getAllPairs = async (req, res, next) => {
-  conn.query("SELECT * FROM Pairs", function (err, data, fields) {
-    if(err) return next(new AppError(err))
-    res.status(200).json({
-      status: "success",
-      length: data?.length,
-      data: data,
+  if (req.query.contract) {
+    conn.query(`SELECT * FROM Pairs where token0="${req.query.contract}" or token1="${req.query.contract}"`, function (err, data, fields) {
+      if(err) return next(new AppError(err))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
     });
-  });
+  } else {
+    conn.query("SELECT * FROM Pairs", function (err, data, fields) {
+      if(err) return next(new AppError(err))
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    });
+  }
 }
 
 /*
