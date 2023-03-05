@@ -29,6 +29,7 @@ export class LatestBlockWatcher {
         this.swapParser = new SwapParser(archiveUrl);
         this.blockFiller = new BlockFiller(chatId, archiveUrl);
         this.startBots(AlertBotKey);
+        this.swapParser.getAllPairs();
 
 
         
@@ -50,7 +51,7 @@ export class LatestBlockWatcher {
         this.archiveProvider.on('block', async (block)=>{
             console.log('latest block: ', block)
             if (this.swapParser.newPairsData.length) {
-                
+                console.log('pairs', this.swapParser.newPairsData.length)
                 try {
                     await api.post('/api/pairs', this.swapParser.newPairsData)
                 }catch(e) {
@@ -58,7 +59,6 @@ export class LatestBlockWatcher {
                 }
             }
             this.swapParser.reset();
-            this.swapParser.getAllPairs();
 
 
         })

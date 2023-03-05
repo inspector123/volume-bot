@@ -91,6 +91,7 @@ class SwapParser {
         this.newPairsData = [];
         this.allSwapsData = [];
         this.alreadyFoundPairs = [];
+        this.getAllPairs();
     }
 
     getPair(pairAddress) {

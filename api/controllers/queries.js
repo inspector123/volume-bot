@@ -394,7 +394,7 @@ export const createPair = async (req, res, next) => {
     return Object.values(b)
   })
   const result = conn.query(
-    "INSERT INTO Pairs (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
+    "INSERT INTO Pairs_Distinct (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
       else {
         res.status(200).json({
@@ -412,7 +412,7 @@ export const createPair = async (req, res, next) => {
 // get all pairs : getting by pair address is too inefficient.
 export const getAllPairs = async (req, res, next) => {
   if (req.query.contract) {
-    conn.query(`SELECT * FROM Pairs where token0="${req.query.contract}" or token1="${req.query.contract}"`, function (err, data, fields) {
+    conn.query(`SELECT * FROM Pairs_Distinct where token0="${req.query.contract}" or token1="${req.query.contract}"`, function (err, data, fields) {
       if(err) return next(new AppError(err))
       res.status(200).json({
         status: "success",
@@ -421,7 +421,7 @@ export const getAllPairs = async (req, res, next) => {
       });
     });
   } else {
-    conn.query("SELECT * FROM Pairs", function (err, data, fields) {
+    conn.query("SELECT * FROM Pairs_Distinct", function (err, data, fields) {
       if(err) return next(new AppError(err))
       res.status(200).json({
         status: "success",
@@ -434,6 +434,18 @@ export const getAllPairs = async (req, res, next) => {
 
 /*
 CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
+  pairAddress varchar(50) NOT NULL,
+  token0 varchar(50) NOT NULL,
+  token1 varchar(50) NOT NULL,
+  token0Decimals double,
+  token1Decimals double,
+  token0Symbol varchar(50),
+  token1Symbol varchar(50),
+  token0TotalSupply double,
+  token1TotalSupply double,
+  PRIMARY KEY(id)
+  );
+  CREATE TABLE Pairs_Distinct(id int NOT NULL AUTO_INCREMENT,
   pairAddress varchar(50) NOT NULL,
   token0 varchar(50) NOT NULL,
   token1 varchar(50) NOT NULL,
