@@ -254,7 +254,7 @@ export class DatabaseWatcher {
 
                         //5m reversal
 
-                        if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i][buyRatio]>0.6) {
+                        if (alertDataSingle[i][volume] > 5500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i][buyRatio]>0.6) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -301,7 +301,7 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 10) {
                                     //possible reversal
                                     let messageText = `possible 15m reversal on ${first.symbol}
                                    
