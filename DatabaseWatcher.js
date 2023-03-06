@@ -22,7 +22,7 @@ export class DatabaseWatcher {
     volume10MMinThreshold = 60000;
     volume1BMinThreshold = 1000000;
     newVolumeAlertsTopic = 3102;
-    contractsToIgnore = ["0xd5De579f8324E3625bDC5E8C6F3dB248614a41C5"]; //shibone
+    contractsToIgnore = ["0xd5De579f8324E3625bDC5E8C6F3dB248614a41C5", "0xC89d9aa9D9E54bb196319c6195AEA1038d2bc936"]; //shibone
     pairs = []
     archiveProvider;
     PercentChangeThreshold = {
@@ -166,8 +166,8 @@ export class DatabaseWatcher {
                             Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
                             Contract age in minutes: ${age} (${age/1440} days)
                             Contract: \`\`\`${contract}\`\`\`
-                            ${averageBuys != 0 ? `average # buys for last 10 periods: ${averageBuys}`: ''}
-                            ${averageVolume != 0 ? `average volume for last 10 periods: ${averageVolume}`: ''}
+                            ${averageBuys != 0 ? `Average # buys for last 10 periods: ${averageBuys}`: ''}
+                            ${averageVolume != 0 ? `Average volume for last 10 periods: ${averageVolume}`: ''}
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
                            // marketCaps[i].ignoredAlerts=[...marketCaps[i].ignoredAlerts, contract].flat()
@@ -228,7 +228,8 @@ export class DatabaseWatcher {
             const blocks = time*5;
             console.log(`running ${time}m contracts job`)
             const { table, volume, buyRatio } = this.getTable(blocks);
-            const alertDataSingle = await this.getLookBackAlert(table, 0);
+            let alertDataSingle = await this.getLookBackAlert(table, 0);
+            alertDataSingle = alertDataSingle.filter(i=>!this.contractsToIgnore.includes(i.contract) || !this.contractsToIgnore.includes(i.contract.toLowerCase()));
             this.pairs = await this.getPairs();
             if (alertDataSingle.length) {
                 for (let i in alertDataSingle) {
@@ -254,10 +255,11 @@ export class DatabaseWatcher {
 
                         //5m reversal
 
-                        if (alertDataSingle[i][volume] > 5500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i][buyRatio]>0.6) {
+                        if (alertDataSingle[i][volume] > 5500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i].buyRatio5m >0.6) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+                            console.log(alertDataSingle[i], getLimitQuery[0])
                             if (getLimitQuery.length > 1){
                                 const first = getLimitQuery[0];
                                 const rest = getLimitQuery.slice(1,)
@@ -270,11 +272,11 @@ export class DatabaseWatcher {
 
                                     MC: ${first.marketCap}
 
-                                    Buy Ratio :${first[buyRatio]}
+                                    Buy Ratio :${first.buyRatio5m}
                                     Latest Volume: ${first[volume]}
-                                    average volume last 20 intervals: ${restVolumeAvg}
+                                    Average volume last 20 intervals: ${restVolumeAvg}
                                     Total Buys last 5m : ${first.totalBuys}
-                                    average total buys last 20 intervals: ${restTotalBuysAvg}
+                                    Average total buys last 20 intervals: ${restTotalBuysAvg}
                                     
                                     
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
@@ -301,7 +303,7 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 10) {
+                                if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg && first.totalBuys > 10) {
                                     //possible reversal
                                     let messageText = `possible 15m reversal on ${first.symbol}
                                    
@@ -309,12 +311,12 @@ export class DatabaseWatcher {
 
                                     Buy Ratio :${first[buyRatio]}
                                     Latest Volume: ${first[volume]}
-                                    average volume last 20 intervals: ${restVolumeAvg}
-                                    Total Buys last 5m : ${first.totalBuys}
-                                    average total buys last 20 intervals: ${restTotalBuysAvg}
+                                    Average volume last 20 intervals: ${restVolumeAvg}
+                                    Total Buys last 15m : ${first.totalBuys}
+                                    Average total buys last 20 intervals: ${restTotalBuysAvg}
                                     
                                     
-                                    chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
 
@@ -336,7 +338,7 @@ export class DatabaseWatcher {
                                     Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                                     
                                     This alert was designed from SIGIL launch.
-                                    mc>50000,volume1h>20000,totalBuys>100,age>121
+                                    Mc>50000,volume1h>20000,totalBuys>100,age>121
                                     `
                                     console.log(messageText)
                                     messageText = this.fixText(messageText)
@@ -361,12 +363,12 @@ export class DatabaseWatcher {
 
                                     Buy Ratio :${first[buyRatio]}
                                     Latest Volume: ${first[volume]}
-                                    average volume last 20 intervals: ${restVolumeAvg}
-                                    Total Buys last 5m : ${first.totalBuys}
-                                    average total buys last 20 intervals: ${restTotalBuysAvg}
+                                    Average volume last 20 intervals: ${restVolumeAvg}
+                                    Total Buys last 1h : ${first.totalBuys}
+                                    Average total buys last 20 intervals: ${restTotalBuysAvg}
                                     
                                     
-                                    chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
                                     messageText = this.fixText(messageText)
