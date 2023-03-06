@@ -21,7 +21,7 @@ export class DatabaseWatcher {
     volume10MMinThreshold = 60000;
     volume1BMinThreshold = 1000000;
     newVolumeAlertsTopic = 3102;
-    contractsToIgnore = [];
+    contractsToIgnore = ["0xd5De579f8324E3625bDC5E8C6F3dB248614a41C5"]; //shibone
     pairs = []
     archiveProvider;
     PercentChangeThreshold = {
@@ -145,7 +145,7 @@ export class DatabaseWatcher {
                         }
                     }
 
-                    
+
                     for (let coin of marketCapAlerts) {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
                         if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
@@ -221,26 +221,28 @@ export class DatabaseWatcher {
 
                         //5m reversal
 
-                        if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000) {
+                        if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle.ageInMinutes>100) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+                            if (getLimitQuery.length > 1){
+                                const first = getLimitQuery[0];
+                                const rest = getLimitQuery.slice(1,)
+                                const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                                const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
+                                console.log(restVolumeAvg, restTotalBuysAvg)
+                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                                    //possible reversal
+                                    const text = `possible 5m reversal on ${first.symbol}
+                                    average volume last 20*5m: ${restVolumeAvg}
+                                    average total buys last 20*5m: ${restTotalBuysAvg}
+                                    MC: ${first.marketCap}
+                                    Total Buys : ${first.totalBuys}
+                                    Buy Ratio :${first[buyRatio]}
+                                    chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-                            const first = getLimitQuery[0];
-                            const rest = getLimitQuery.slice(1,)
-                            const restVolumeAvg = this.average(rest.map(r=>r[volume]))
-                            const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                            if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
-                                //possible reversal
-                                const text = `possible 5m reversal on ${first.symbol}
-                                average volume last 20*5m: ${restVolumeAvg}
-                                average total buys last 20*5m: ${restTotalBuysAvg}
-                                MC: ${first.marketCap}
-                                Total Buys : ${first.totalBuys}
-                                Buy Ratio :${first[buyRatio]}
-                                chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-
-                                `
+                                    `
+                                }
                             }
                         }
                     }
@@ -250,26 +252,27 @@ export class DatabaseWatcher {
 
 
                         //reversal alerts
-                        if (alertDataSingle[i][volume] > 6000 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000) {
+                        if (alertDataSingle[i][volume] > 6000 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle.ageInMinutes>1000) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+                            if (getLimitQuery.length > 1) {
+                                const first = getLimitQuery[0];
+                                const rest = getLimitQuery.slice(1,)
+                                const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                                const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
+                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                                    //possible reversal
+                                    const text = `possible 15m reversal on ${first.symbol}
+                                    average volume last 20*15m: ${restVolumeAvg}
+                                    average total buys last 20*15m: ${restTotalBuysAvg}
+                                    MC: ${first.marketCap}
+                                    Total Buys : ${first.totalBuys}
+                                    Buy Ratio :${first[buyRatio]}
+                                    chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-                            const first = getLimitQuery[0];
-                            const rest = getLimitQuery.slice(1,)
-                            const restVolumeAvg = this.average(rest.map(r=>r[volume]))
-                            const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                            if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
-                                //possible reversal
-                                const text = `possible 5m reversal on ${first.symbol}
-                                average volume last 20*5m: ${restVolumeAvg}
-                                average total buys last 20*5m: ${restTotalBuysAvg}
-                                MC: ${first.marketCap}
-                                Total Buys : ${first.totalBuys}
-                                Buy Ratio :${first[buyRatio]}
-                                chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-
-                                `
+                                    `
+                                }
                             }
                         }
                     }
@@ -293,25 +296,27 @@ export class DatabaseWatcher {
                         }
 
                         //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
-                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && buyRatio > 0.75) {
-                            let limit = 10;
+                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && buyRatio > 0.75 && alertDataSingle.ageInMinutes>1000) {
+                            let limit = 5;
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, limit);
 
                             const first = getLimitQuery[0];
-                            const rest = getLimitQuery.slice(1,)
-                            const restVolumeAvg = this.average(rest.map(r=>r[volume]))
-                            const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                            if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg) {
-                                //possible reversal
-                                const text = `possible 1h reversal on ${first.symbol}
-                                average volume last ${limit}*1h: ${restVolumeAvg}
-                                average total buys last ${limit}*1h: ${restTotalBuysAvg}
-                                MC: ${first.marketCap}
-                                Total Buys : ${first.totalBuys}
-                                Buy Ratio :${first[buyRatio]}
-                                chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                            if (getLimitQuery.length > 1) {
+                                const rest = getLimitQuery.slice(1,)
+                                const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                                const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
+                                if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg) {
+                                    //possible reversal
+                                    const text = `possible 1h reversal on ${first.symbol}
+                                    average volume last ${limit}*1h: ${restVolumeAvg}
+                                    average total buys last ${limit}*1h: ${restTotalBuysAvg}
+                                    MC: ${first.marketCap}
+                                    Total Buys : ${first.totalBuys}
+                                    Buy Ratio :${first[buyRatio]}
+                                    chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-                                `
+                                    `
+                                }
                             }
                         }
 
