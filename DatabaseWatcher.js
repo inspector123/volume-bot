@@ -132,14 +132,41 @@ export class DatabaseWatcher {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
                         if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract) || marketCaps[i].ignoredAlerts.includes(contract)) continue;
                         else {
+                            const { table, volume, buyRatio } = this.getTable(blocks);
+                            const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 10);
+                            let averageVolume =0;
+                            let averageBuys =0;
+                            if (getLimitQuery.length > 1) {
+                                const first = getLimitQuery[0];
+                                const rest = getLimitQuery.slice(1,)
+                                const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                                const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
+                                averageVolume = restVolumeAvg;
+                                averageBuys = restTotalBuysAvg;
+                                console.log(restVolumeAvg, restTotalBuysAvg)
+                                // if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                                //     //possible reversal
+                                //     const text = `possible 5m reversal on ${first.symbol}
+                                //     average volume last 20*5m: ${restVolumeAvg}
+                                //     average total buys last 20*5m: ${restTotalBuysAvg}
+                                //     MC: ${first.marketCap}
+                                //     Total Buys : ${first.totalBuys}
+                                //     Buy Ratio :${first[buyRatio]}
+                                //     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+
+                                //     `
+                                // }
+                            }
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}
                             Buy/sell ratio: ${buyRatio} ( 0 = all sells, 1 = all buys)
                             Contract age in minutes: ${age} (${age/1440} days)
                             Contract: \`\`\`${contract}\`\`\`
+                            ${averageBuys != 0 ? `average # buys for last 10 periods: ${averageBuys}`: ''}
+                            ${averageVolume != 0 ? `average volume for last 10 periods: ${averageVolume}`: ''}
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
-                            marketCaps[i].ignoredAlerts=[...marketCaps[i].ignoredAlerts, contract].flat()
+                           // marketCaps[i].ignoredAlerts=[...marketCaps[i].ignoredAlerts, contract].flat()
                             messageText = this.fixText(messageText)
                             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
                         }
