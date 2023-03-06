@@ -130,7 +130,7 @@ export class DatabaseWatcher {
                     })
                     for (let coin of marketCapAlerts) {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
-                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract) && marketCaps[i].ignoredAlerts.includes(contract)) continue;
+                        if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract) || marketCaps[i].ignoredAlerts.includes(contract)) continue;
                         else {
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}
@@ -144,6 +144,8 @@ export class DatabaseWatcher {
                             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: marketCaps[i].topicId}).catch(e=>console.log(e));
                         }
                     }
+
+                    
                     for (let coin of marketCapAlerts) {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
                         if (this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract)) continue;
