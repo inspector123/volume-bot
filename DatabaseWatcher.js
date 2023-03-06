@@ -160,7 +160,7 @@ export class DatabaseWatcher {
         }
     }
 
-    async getPair(contract) {
+    getPair(contract) {
         try {
             return this.pairs.filter(p=>p.token0==contract||p.token1==contract)[0];
         } catch(e) {
@@ -170,15 +170,15 @@ export class DatabaseWatcher {
     async runContractsJob(time) {
         try {
             const blocks = time*5;
-            console.log(`running ${blocks} job`)
+            console.log(`running ${time}m contracts job`)
             const { table, volume } = this.getTable(blocks);
             const alertDataSingle = await this.getLookBackAlert(table, 0);
-            this.pairs = await this.getPairs()
+            this.pairs = await this.getPairs();
             if (alertDataSingle.length) {
                 for (let i in alertDataSingle) {
                     const pairAddress = this.getPair(alertDataSingle[i].contract);
                     if (table == 'Contracts5m') {
-                        if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m<6000) {
+                        if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m>4500) {
                             let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. MC:${alertDataSingle[i].marketCap}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
@@ -188,7 +188,7 @@ export class DatabaseWatcher {
                                     Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     This alert was designed from ODOGE launch.
-                                    age<11,totalBuys>20,buyRatio==1,volume5m>6000
+                                    age<11,totalBuys>20,buyRatio==1,volume5m>6000 (changed to 4500 for more flex)
                                     `
                                     console.log(messageText)
                                     messageText = this.fixText(messageText)
@@ -196,7 +196,7 @@ export class DatabaseWatcher {
                         }
                     }
                     if (table == 'Contracts1h') {
-                        if (alertDataSingle[i].marketCap < 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
+                        if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
                             `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${mc}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
@@ -262,7 +262,8 @@ export class DatabaseWatcher {
     }
 
     fixText(text) {
-        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
+        //replace .,!,-,=,(,),> with \\+ $1,fix tabs.
+        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/(\.|\!|-|\(|\)|=|>)/g, "\\$1");
     }
 
 
