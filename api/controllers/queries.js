@@ -258,10 +258,12 @@ export const getLookBackQuery_AnyTimeFrame = async (req,res,next) => {
 }
 
 export const getLookBackQuery = async (req,res,next) => {
-  const { table, blocks, marketCap } = req.query;
-  if (!table || !marketCap ) return next(new AppError("Missing a query parameter", 404));
-  if (req.query.contract && req.query.limit) {
-      const query = `select * from ${table} where blockNumber <= ( select max(blockNumber) from ${table} )-${blocks} and marketCap < ${marketCap} and contract=${req.query.contract} limit ${req.query.limit};`
+  const { table, blocks } = req.query;
+  if (!req.query.marketCap) req.query.marketCap = 1000000;
+  if (!table) return next(new AppError("Missing a query parameter", 404));
+  if (req.query.limit && req.query.contract) {
+      //const query = `select * from ${table} where blockNumber <= ( select max(blockNumber) from ${table} )-${blocks} and marketCap < ${marketCap} and contract=${req.query.contract} limit ${req.query.limit};`
+      const query = `select * from ${table} where blockNumber <= ${req.query.blockNumber} and contract="${req.query.contract}" order by blockNumber desc limit ${req.query.limit}`;
       conn.query(query, function (err, data, fields) {
         if(err) return next(new AppError(err))
         res.status(200).json({
@@ -271,7 +273,7 @@ export const getLookBackQuery = async (req,res,next) => {
         });
       });
   } else {
-    const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${table})-${blocks} and (select max(blockNumber) from ${table}) and marketCap < ${marketCap};`
+    const query = `select * from ${req.query.table} where blockNumber between (select max(blockNumber) from ${table})-${blocks} and (select max(blockNumber) from ${table}) and marketCap < ${req.query.marketCap};`
     conn.query(query, function (err, data, fields) {
       if(err) return next(new AppError(err))
       res.status(200).json({

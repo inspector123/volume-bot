@@ -2,6 +2,8 @@
 import api from "./api/utils/axios.js"
 import {Telegraf} from "telegraf"
 import { ethers } from 'ethers';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 export class DatabaseWatcher {
 
@@ -42,11 +44,10 @@ export class DatabaseWatcher {
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.runVolumeJob(1, this.volume1m);
-        this.runContractsJob(5);
-        this.runContractsJob(60);
         this.setUpCommands();
         this.setIntervals();
         
+        this.startTest();
 
     }
 
@@ -61,9 +62,16 @@ export class DatabaseWatcher {
     }
 
     async startTest() {
-        this.setUpCommands();
+        // try { 
+        //     const response = await this.getLimitQuery("Contracts15m", "0xb33bfaB26984a3135D6c36E7E362a1B61cb17A64", 16744036, 20);
+        //     console.log(response)
+        // }
+        // catch(e) {
+        //     console.log(e)
+        // }
+            // this.setUpCommands();
 
-        this.runVolumeChangeJobHandler();
+        // this.runVolumeChangeJobHandler();
 
     }
 
@@ -88,6 +96,15 @@ export class DatabaseWatcher {
     async getLastFromContractsTable(table) {
         try {
             const response = await api.get(`/api/contracts?table=${table}&marketCap=10000000`)
+            return response.data.data;
+        } catch(e) {
+            console.log(e.response.data, 'error')
+        }
+    }
+
+    async getLimitQuery(table,contract,blockNumber,limit) {
+        try {
+            const response = await api.get(`/api/contracts?table=${table}&contract=${contract}&blockNumber=${blockNumber}&limit=${limit}`)
             return response.data.data;
         } catch(e) {
             console.log(e.response.data, 'error')
@@ -138,7 +155,7 @@ export class DatabaseWatcher {
                             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
                             `
                             messageText = this.fixText(messageText)
-                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: 3476}).catch(e=>console.log(e));
+                            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_LAUNCH_ALERTS}).catch(e=>console.log(e));
                             }
                         }
                     }
@@ -178,8 +195,9 @@ export class DatabaseWatcher {
                 for (let i in alertDataSingle) {
                     const pairAddress = this.getPair(alertDataSingle[i].contract);
                     if (table == 'Contracts5m') {
+                        //5m alert 1: odoge
                         if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m>4500) {
-                            let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. MC:${alertDataSingle[i].marketCap}
+                            let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. highest MC:${alertDataSingle[i].marketCap}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
                                     Buy Ratio: ${alertDataSingle[i].buyRatio5m}
@@ -192,12 +210,26 @@ export class DatabaseWatcher {
                                     `
                                     console.log(messageText)
                                     messageText = this.fixText(messageText)
-                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
+                        }
+
+                        //5m reversal
+
+                        if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000) {
+                            //look back at contracts5m table for the last entries for this coin
+
+                            //const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+
+                           // const firstEntry = getLimitQuery[0];
                         }
                     }
+                    if (table == 'Contracts15m') {
+
+                    }
                     if (table == 'Contracts1h') {
+                        //special hourly alert 1
                         if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
-                            `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${mc}
+                            `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${alertDataSingle[i].marketCap}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
                                     Buy Ratio: ${alertDataSingle[i].buyRatio1h}
@@ -210,15 +242,22 @@ export class DatabaseWatcher {
                                     `
                                     console.log(messageText)
                                     messageText = this.fixText(messageText)
-                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
                         }
+
+                        //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
+                        if (alertDataSingle[i][volume] >= 15000 && alertDataSingle[i].totalBuys && buyRatio > 0.75) {
+                            console.log('adsfkj')
+                        }
+
+
                     }
                 }
             }
         } catch(e) {
             console.log(e);
             let messageText = `error sending contracts message, ${e}`
-            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: this.newVolumeAlertsTopic}).catch(e=>console.log(e))
+            this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
         }
     }
 
