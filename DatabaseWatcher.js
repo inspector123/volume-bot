@@ -255,38 +255,38 @@ export class DatabaseWatcher {
 
                         //5m reversal
 
-                        if (alertDataSingle[i][volume] > 5500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i].buyRatio5m >0.6) {
-                            //look back at contracts5m table for the last entries for this coin
+                        // if (alertDataSingle[i][volume] > 5500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i].buyRatio5m >0.6) {
+                        //     //look back at contracts5m table for the last entries for this coin
 
-                            const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
-                            console.log(alertDataSingle[i], getLimitQuery[0])
-                            if (getLimitQuery.length > 1){
-                                const first = getLimitQuery[0];
-                                const rest = getLimitQuery.slice(1,)
-                                const restVolumeAvg = this.average(rest.map(r=>r[volume]))
-                                const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                console.log(restVolumeAvg, restTotalBuysAvg)
-                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
-                                    //possible reversal
-                                    let  messageText = `possible 5m reversal on ${first.symbol}
+                        //     const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+                        //     console.log(alertDataSingle[i], getLimitQuery[0])
+                        //     if (getLimitQuery.length > 1){
+                        //         const first = getLimitQuery[0];
+                        //         const rest = getLimitQuery.slice(1,)
+                        //         const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                        //         const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
+                        //         console.log(restVolumeAvg, restTotalBuysAvg)
+                        //         if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                        //             //possible reversal
+                        //             let  messageText = `possible 5m reversal on ${first.symbol}
 
-                                    MC: ${first.marketCap}
+                        //             MC: ${first.marketCap}
 
-                                    Buy Ratio :${first.buyRatio5m}
-                                    Latest Volume: ${first[volume]}
-                                    Average volume last 20 intervals: ${restVolumeAvg}
-                                    Total Buys last 5m : ${first.totalBuys}
-                                    Average total buys last 20 intervals: ${restTotalBuysAvg}
+                        //             Buy Ratio :${first.buyRatio5m}
+                        //             Latest Volume: ${first[volume]}
+                        //             Average volume last 20 intervals: ${restVolumeAvg}
+                        //             Total Buys last 5m : ${first.totalBuys}
+                        //             Average total buys last 20 intervals: ${restTotalBuysAvg}
                                     
                                     
-                                    chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                        //             chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-                                    `
-                                    messageText=this.fixText(messageText);
-                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e));
-                                }
-                            }
-                        }
+                        //             `
+                        //             messageText=this.fixText(messageText);
+                        //             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e));
+                        //         }
+                        //     }
+                        // }
                     }
                     if (table == 'Contracts15m') {
 
