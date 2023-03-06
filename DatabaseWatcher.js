@@ -218,7 +218,7 @@ export class DatabaseWatcher {
 
     getPair(contract) {
         try {
-            return this.pairs.filter(p=>p.token0==contract||p.token1==contract)[0];
+            return this.pairs.filter(p=>p.token0==contract||p.token1==contract)[0].pairAddress;
         } catch(e) {
             console.log(e)
         }
@@ -267,11 +267,16 @@ export class DatabaseWatcher {
                                 if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
                                     //possible reversal
                                     let  messageText = `possible 5m reversal on ${first.symbol}
-                                    average volume last 20*5m: ${restVolumeAvg}
-                                    average total buys last 20*5m: ${restTotalBuysAvg}
+
                                     MC: ${first.marketCap}
-                                    Total Buys : ${first.totalBuys}
+
                                     Buy Ratio :${first[buyRatio]}
+                                    Latest Volume: ${first[volume]}
+                                    average volume last 20 intervals: ${restVolumeAvg}
+                                    Total Buys last 5m : ${first.totalBuys}
+                                    average total buys last 20 intervals: ${restTotalBuysAvg}
+                                    
+                                    
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
@@ -299,11 +304,16 @@ export class DatabaseWatcher {
                                 if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
                                     //possible reversal
                                     let messageText = `possible 15m reversal on ${first.symbol}
-                                    average volume last 20*15m: ${restVolumeAvg}
-                                    average total buys last 20*15m: ${restTotalBuysAvg}
+                                   
                                     MC: ${first.marketCap}
-                                    Total Buys : ${first.totalBuys}
+
                                     Buy Ratio :${first[buyRatio]}
+                                    Latest Volume: ${first[volume]}
+                                    average volume last 20 intervals: ${restVolumeAvg}
+                                    Total Buys last 5m : ${first.totalBuys}
+                                    average total buys last 20 intervals: ${restTotalBuysAvg}
+                                    
+                                    
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
@@ -335,7 +345,7 @@ export class DatabaseWatcher {
 
                         //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
                         if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && alertDataSingle[i][buyRatio] > 0.75 && alertDataSingle[i].ageInMinutes>1000) {
-                            let limit = 5;
+                            let limit = 10;
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, limit);
 
                             const first = getLimitQuery[0];
@@ -343,14 +353,19 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg) {
+                                if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg && first.totalBuys > 30) {
                                     //possible reversal
                                     let messageText = `possible 1h reversal on ${first.symbol}
-                                    average volume last ${limit}*1h: ${restVolumeAvg}
-                                    average total buys last ${limit}*1h: ${restTotalBuysAvg}
+                                   
                                     MC: ${first.marketCap}
-                                    Total Buys : ${first.totalBuys}
+
                                     Buy Ratio :${first[buyRatio]}
+                                    Latest Volume: ${first[volume]}
+                                    average volume last 20 intervals: ${restVolumeAvg}
+                                    Total Buys last 5m : ${first.totalBuys}
+                                    average total buys last 20 intervals: ${restTotalBuysAvg}
+                                    
+                                    
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
@@ -413,7 +428,7 @@ export class DatabaseWatcher {
 
     fixText(text) {
         //replace .,!,-,=,(,),> with \\+ $1,fix tabs.
-        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
+        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=").replace(/>/g,"\\>").replace(/</g,"\\<");
     }
 
 
