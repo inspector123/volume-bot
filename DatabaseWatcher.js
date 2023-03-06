@@ -165,6 +165,8 @@ export class DatabaseWatcher {
                             }
                         }
                     }
+
+
                     
                 }
             }
@@ -221,7 +223,7 @@ export class DatabaseWatcher {
 
                         //5m reversal
 
-                        if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle.ageInMinutes>100) {
+                        if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && alertDataSingle[i][buyRatio]>0.6) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -252,7 +254,7 @@ export class DatabaseWatcher {
 
 
                         //reversal alerts
-                        if (alertDataSingle[i][volume] > 6000 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle.ageInMinutes>1000) {
+                        if (alertDataSingle[i][volume] > 6000 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>1000) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -296,7 +298,7 @@ export class DatabaseWatcher {
                         }
 
                         //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
-                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && buyRatio > 0.75 && alertDataSingle.ageInMinutes>1000) {
+                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && alertDataSingle[i][buyRatio] > 0.75 && alertDataSingle[i].ageInMinutes>1000) {
                             let limit = 5;
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, limit);
 
