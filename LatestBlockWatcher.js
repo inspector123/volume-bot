@@ -29,19 +29,19 @@ export class LatestBlockWatcher {
         this.swapParser = new SwapParser(archiveUrl);
         this.blockFiller = new BlockFiller(chatId, archiveUrl);
         this.startBots(AlertBotKey);
-        this.swapParser.getAllPairs();
+        
 
 
         
     }
-    startBots(AlertBotKey) {
-        this.alertBot = new Telegraf(AlertBotKey);
-        this.alertBot.catch(e=>console.log(e))
-
+    async startBots(AlertBotKey) {
+        // this.alertBot = new Telegraf(AlertBotKey);
+        // this.alertBot.catch(e=>console.log(e))
         
     }
     async start() {
         //this.startBots();
+        await this.swapParser.getAllPairs();
         this.runEthersBlockCheck();
     }
 
@@ -50,17 +50,6 @@ export class LatestBlockWatcher {
         if (blocks) this.blocks = blocks;
         this.archiveProvider.on('block', async (block)=>{
             console.log('latest block: ', block)
-            if (this.swapParser.newPairsData.length) {
-                console.log('pairs', this.swapParser.newPairsData.length)
-                try {
-                    await api.post('/api/pairs', this.swapParser.newPairsData)
-                }catch(e) {
-                    console.log(e.response.data, 'pairs blah')
-                }
-            }
-            this.swapParser.reset();
-
-
         })
         this.archiveProvider.on({topics: [[v2topic,v3topic]]}, async (log)=>{
             let swap = await this.swapParser.grabSwap(log);

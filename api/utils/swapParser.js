@@ -29,6 +29,7 @@ class SwapParser {
     btcPrice = 16900;
     allPairsData = [];
     newPairsData = [];
+    postedPairsData = [];
     allSwapsData = [];
     alreadyFoundPairs = [];
     pairsAsNumberSorted = [];
@@ -64,7 +65,7 @@ class SwapParser {
 
     async postPair(pairBody) {
         try {
-            const response = await api.post(`/api/pairs`, pairBody)
+            const response = await api.post(`/api/pairs`, [pairBody])
         } catch(e) {
             console.log('error posting pair')
         }
@@ -86,26 +87,9 @@ class SwapParser {
         }
     }
 
-    reset() {
-        this.allPairsData = [];
-        this.newPairsData = [];
-        this.allSwapsData = [];
-        this.alreadyFoundPairs = [];
-        this.getAllPairs();
-    }
-
     getPair(pairAddress) {
-        const alreadyFoundPair = this.alreadyFoundPairs.filter(p=>p.pairAddress==pairAddress);
-        if (alreadyFoundPair.length) {
-            return alreadyFoundPair[0];
-        } else {
-            const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
-            if (findPair.length) {
-                this.alreadyFoundPairs = [...this.alreadyFoundPairs, findPair[0]];
-            }
-            return findPair
-        }
-
+        const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
+        return findPair
     }
 
     addToSwaps(swap) {
@@ -283,8 +267,8 @@ class SwapParser {
                     token0TotalSupply,
                     token1TotalSupply
                 }
-
-                this.addToPairs(pairBody)
+                this.allPairsData = [...this.allPairsData, pairBody]
+                await this.postPair(pairBody);
             }
             //his.addToSwaps(v2SwapsToAdd)
             return v2SwapsToAdd
@@ -445,7 +429,8 @@ class SwapParser {
                     token1TotalSupply
                 }
 
-                this.addToPairs(pairBody)
+                this.allPairsData = [...this.allPairsData, pairBody]
+                await this.postPair(pairBody)
             }
             //this.addToSwaps(v3Swap)
             return v3Swap

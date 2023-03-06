@@ -393,6 +393,7 @@ export const createPair = async (req, res, next) => {
   const _body = body.map(b=>{
     return Object.values(b)
   })
+  console.log()
   const result = conn.query(
     "INSERT INTO Pairs_Distinct (pairAddress,token0,token1,token0Decimals,token1Decimals,token0Symbol,token1Symbol,token0TotalSupply,token1TotalSupply) VALUES(?);".repeat(_body.length),_body, (err,data)=>{
       if (err) res.status(500).json({status: "error", err})
@@ -409,6 +410,7 @@ export const createPair = async (req, res, next) => {
   return;
 
 }
+
 // get all pairs : getting by pair address is too inefficient.
 export const getAllPairs = async (req, res, next) => {
   if (req.query.contract) {

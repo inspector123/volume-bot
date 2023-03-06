@@ -180,9 +180,12 @@ class ContractWatcher {
             const postObjects = await Promise.all(newContracts.map(async sym=>{
                 let liqAddBlock = 0, liqAddTimestamp = 0;
                 const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock && response.liqAddTimestamp) {
+                if (response.liqAddBlock != undefined && response.liqAddTimestamp != undefined) {
                     liqAddBlock = response.liqAddBlock;
                     liqAddTimestamp = response.liqAddTimestamp;
+                }
+                if (!response) {
+                    console.log(sym.contract)
                 }
                 const liqLockBlock = 0, renounceBlock = 0;
                 // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
@@ -254,7 +257,7 @@ class ContractWatcher {
 
             //
         } catch(e) {
-            console.log(e)
+            console.log(e, )
         }
 
     }

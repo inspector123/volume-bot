@@ -283,6 +283,8 @@ export class DatabaseWatcher {
         try {
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `
             LIST OF COMMANDS: 
+            /help: this one.
+            /areyouonline : check if i am online, if not i won't respond.
             /volume1m {number} (current=${this.volume1m})
             /volume5m {number}  (current=${this.volume5m})
             /volume15m {number} (current=${this.volume15m})
@@ -339,6 +341,10 @@ export class DatabaseWatcher {
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `error ${e}`).catch(e=>console.log(e))
             console.log(e);
         }
+    })
+
+    this.volumeBot.command('areyouonline', (ctx)=>{
+        this.volumeBot.telegram.sendMessage(this.chatId, `hello ser`, {parse_mode: 'MarkdownV2'})
     })
 
 
