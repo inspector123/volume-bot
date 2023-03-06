@@ -292,7 +292,7 @@ export class DatabaseWatcher {
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
                                 if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
                                     //possible reversal
-                                    const text = `possible 15m reversal on ${first.symbol}
+                                    let messageText = `possible 15m reversal on ${first.symbol}
                                     average volume last 20*15m: ${restVolumeAvg}
                                     average total buys last 20*15m: ${restTotalBuysAvg}
                                     MC: ${first.marketCap}
@@ -301,6 +301,9 @@ export class DatabaseWatcher {
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
+
+                                    messageText = this.fixText(messageText)
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
                                 }
                             }
                         }
@@ -308,7 +311,7 @@ export class DatabaseWatcher {
                     if (table == 'Contracts1h') {
                         //special hourly alert 1
                         if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
-                            `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${alertDataSingle[i].marketCap}
+                            let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${alertDataSingle[i].marketCap}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
                                     Buy Ratio: ${alertDataSingle[i].buyRatio1h}
@@ -336,7 +339,7 @@ export class DatabaseWatcher {
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
                                 if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg) {
                                     //possible reversal
-                                    const text = `possible 1h reversal on ${first.symbol}
+                                    let messageText = `possible 1h reversal on ${first.symbol}
                                     average volume last ${limit}*1h: ${restVolumeAvg}
                                     average total buys last ${limit}*1h: ${restTotalBuysAvg}
                                     MC: ${first.marketCap}
@@ -345,6 +348,9 @@ export class DatabaseWatcher {
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
+                                    messageText = this.fixText(messageText)
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
+
                                 }
                             }
                         }

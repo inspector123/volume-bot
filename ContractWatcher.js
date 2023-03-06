@@ -176,7 +176,7 @@ class ContractWatcher {
 
             //for contracts that don't exist, get their age and add them
             const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length)
+            console.log('newContracts length', newContracts.length, newContracts)
             const postObjects = await Promise.all(newContracts.map(async sym=>{
                 let liqAddBlock = 0, liqAddTimestamp = 0;
                 const response =  await this.getLiqAddBlock(sym.contract);
@@ -684,7 +684,7 @@ class ContractWatcher {
 
             //for contracts that don't exist, get their age and add them
             const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length)
+            console.log('newContracts length', newContracts.length, newContracts)
             const postObjects = await Promise.all(newContracts.map(async sym=>{
                 let liqAddBlock = 0, liqAddTimestamp = 0;
                 const response =  await this.getLiqAddBlock(sym.contract);
@@ -698,8 +698,8 @@ class ContractWatcher {
                 return {
                     symbol: sym.symbol,
                     contract: sym.contract,
-                    liqAddBlock,
-                    liqAddTimestamp,
+                    liqAddBlock: liqAddBlock ? liqAddBlock : 0,
+                    liqAddTimestamp: liqAddTimestamp ? liqAddTimestamp : 0,
                     liqLockBlock: liqLockBlock || 0,
                     renounceBlock: renounceBlock || 0
                 }
