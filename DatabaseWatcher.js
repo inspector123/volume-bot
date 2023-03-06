@@ -12,6 +12,7 @@ export class DatabaseWatcher {
     to1m = 4;
     to10m = 6;
     to1b  = 8;
+    //volume1m=1;
     volume1m = 7000;
     volume5m = 9000;
     volume15m = 25000;
@@ -43,12 +44,15 @@ export class DatabaseWatcher {
     }
     async start() {
         //setInterval(()=>run1mJob(),600000);
+
         this.runVolumeJob(1, this.volume1m);
         this.runContractsJob(5);
         this.setUpCommands();
         this.setIntervals();
+        
 
     }
+
 
     async setIntervals() {
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
@@ -89,7 +93,7 @@ export class DatabaseWatcher {
             const response = await api.get(`/api/contracts?table=${table}&blocks=${blocks}&marketCap=10000000`)
             return response.data.data;
         } catch(e) {
-            console.log(e.response.data, 'error')
+            console.log(e.response.data, 'error lookback')
         }
     }
 
@@ -107,7 +111,7 @@ export class DatabaseWatcher {
             const response = await api.get(`/api/contracts?table=${table}&contract=${contract}&blockNumber=${blockNumber}&limit=${limit}`)
             return response.data.data;
         } catch(e) {
-            console.log(e.response.data, 'error')
+            console.log(e.response.data, 'error getlimitquery')
         }
     }
 
@@ -132,8 +136,8 @@ export class DatabaseWatcher {
                         let { sm, mc, totalBuys, priceRatio, ageInMinutes: age, buyRatio, contract, symbol, pairAddress } = coin;
                         if (sm < marketCaps[i].volumeMin || this.contractsToIgnore.includes(contract.toLowerCase()) || this.contractsToIgnore.includes(contract) || marketCaps[i].ignoredAlerts.includes(contract)) continue;
                         else {
-                            const { table, volume, buyRatio } = this.getTable(blocks);
-                            const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 10);
+                            const { table, volume, buyRatio: _buyRatio } = this.getTable(blocks);
+                            const getLimitQuery = await this.getLimitQuery(table, contract, 0, 10);
                             let averageVolume =0;
                             let averageBuys =0;
                             if (getLimitQuery.length > 1) {
@@ -208,7 +212,7 @@ export class DatabaseWatcher {
             const pairsResponse = await api.get(`/api/pairs`)
             return pairsResponse.data.data;
         } catch(e) {
-            console.log(e)
+            console.log(e, 'getpairs')
         }
     }
 
@@ -262,7 +266,7 @@ export class DatabaseWatcher {
                                 console.log(restVolumeAvg, restTotalBuysAvg)
                                 if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
                                     //possible reversal
-                                    const text = `possible 5m reversal on ${first.symbol}
+                                    let  messageText = `possible 5m reversal on ${first.symbol}
                                     average volume last 20*5m: ${restVolumeAvg}
                                     average total buys last 20*5m: ${restTotalBuysAvg}
                                     MC: ${first.marketCap}
@@ -271,6 +275,8 @@ export class DatabaseWatcher {
                                     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
                                     `
+                                    messageText=this.fixText(messageText);
+                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e));
                                 }
                             }
                         }
@@ -361,7 +367,7 @@ export class DatabaseWatcher {
             }
         } catch(e) {
             console.log(e);
-            let messageText = `error sending contracts message, ${e}`
+            let messageText = this.fixText(`error sending contracts message, ${e}`)
             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
         }
     }
@@ -407,7 +413,7 @@ export class DatabaseWatcher {
 
     fixText(text) {
         //replace .,!,-,=,(,),> with \\+ $1,fix tabs.
-        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/(\.|\!|-|\(|\)|=|>)/g, "\\$1");
+        return text.replace(/\s{3,}([A-Z])/gm, '\n$1').replace(/\./g, "\\.").replace(/\!/g,"\\!").replace(/-/g, "\\-").replace(/(\(|\))/g,"\\$1").replace(/=/g, "\\=");
     }
 
 

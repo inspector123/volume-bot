@@ -258,10 +258,11 @@ export const getLookBackQuery_AnyTimeFrame = async (req,res,next) => {
 }
 
 export const getLookBackQuery = async (req,res,next) => {
-  const { table, blocks } = req.query;
+  let { table, blocks } = req.query;
   if (!req.query.marketCap) req.query.marketCap = 1000000;
   if (!table) return next(new AppError("Missing a query parameter", 404));
   if (req.query.limit && req.query.contract) {
+    // if (blocks == 0) blocks = `(select max(blockNumber) from ${table})`
       //const query = `select * from ${table} where blockNumber <= ( select max(blockNumber) from ${table} )-${blocks} and marketCap < ${marketCap} and contract=${req.query.contract} limit ${req.query.limit};`
       const query = `select * from ${table} where blockNumber <= ${req.query.blockNumber} and contract="${req.query.contract}" order by blockNumber desc limit ${req.query.limit}`;
       conn.query(query, function (err, data, fields) {
