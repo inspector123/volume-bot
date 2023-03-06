@@ -46,8 +46,6 @@ export class DatabaseWatcher {
         this.runVolumeJob(1, this.volume1m);
         this.setUpCommands();
         this.setIntervals();
-        
-        this.startTest();
 
     }
 
@@ -58,6 +56,7 @@ export class DatabaseWatcher {
         setInterval(()=>this.runVolumeJob(60, this.volume60m),60*60*1000);
 
         setInterval(()=>this.runContractsJob(5),5*60*1000);
+        setInterval(()=>this.runContractsJob(15),15*60*1000);
         setInterval(()=>this.runContractsJob(60),60*60*1000);
     }
 
