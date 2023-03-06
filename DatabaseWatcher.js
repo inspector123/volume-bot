@@ -44,6 +44,7 @@ export class DatabaseWatcher {
     async start() {
         //setInterval(()=>run1mJob(),600000);
         this.runVolumeJob(1, this.volume1m);
+        this.runContractsJob(5);
         this.setUpCommands();
         this.setIntervals();
 
@@ -225,8 +226,8 @@ export class DatabaseWatcher {
 
                             const first = getLimitQuery[0];
                             const rest = getLimitQuery.slice(1,)
-                            const restVolumeAvg = average(rest.map(r=>r[volume]))
-                            const restTotalBuysAvg = average(rest.map(r=>r.totalBuys))
+                            const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                            const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
                             if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
                                 //possible reversal
                                 const text = `possible 5m reversal on ${first.symbol}
@@ -254,8 +255,8 @@ export class DatabaseWatcher {
 
                             const first = getLimitQuery[0];
                             const rest = getLimitQuery.slice(1,)
-                            const restVolumeAvg = average(rest.map(r=>r[volume]))
-                            const restTotalBuysAvg = average(rest.map(r=>r.totalBuys))
+                            const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                            const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
                             if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
                                 //possible reversal
                                 const text = `possible 5m reversal on ${first.symbol}
@@ -296,8 +297,8 @@ export class DatabaseWatcher {
 
                             const first = getLimitQuery[0];
                             const rest = getLimitQuery.slice(1,)
-                            const restVolumeAvg = average(rest.map(r=>r[volume]))
-                            const restTotalBuysAvg = average(rest.map(r=>r.totalBuys))
+                            const restVolumeAvg = this.average(rest.map(r=>r[volume]))
+                            const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
                             if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg) {
                                 //possible reversal
                                 const text = `possible 1h reversal on ${first.symbol}
