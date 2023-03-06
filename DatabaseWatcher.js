@@ -111,6 +111,10 @@ export class DatabaseWatcher {
         }
     }
 
+    average (array) { 
+        return array.reduce((a, b) => a + b) / array.length;
+    }
+
     async runVolumeJob(time, volume) {
         try { 
             const blocks = time*5;
@@ -188,7 +192,7 @@ export class DatabaseWatcher {
         try {
             const blocks = time*5;
             console.log(`running ${time}m contracts job`)
-            const { table, volume } = this.getTable(blocks);
+            const { table, volume, buyRatio } = this.getTable(blocks);
             const alertDataSingle = await this.getLookBackAlert(table, 0);
             this.pairs = await this.getPairs();
             if (alertDataSingle.length) {
@@ -218,13 +222,54 @@ export class DatabaseWatcher {
                         if (alertDataSingle[i][volume] > 3500 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000) {
                             //look back at contracts5m table for the last entries for this coin
 
-                            //const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+                            const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
 
-                           // const firstEntry = getLimitQuery[0];
+                            const first = getLimitQuery[0];
+                            const rest = getLimitQuery.slice(1,)
+                            const restVolumeAvg = average(rest.map(r=>r[volume]))
+                            const restTotalBuysAvg = average(rest.map(r=>r.totalBuys))
+                            if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                                //possible reversal
+                                const text = `possible 5m reversal on ${first.symbol}
+                                average volume last 20*5m: ${restVolumeAvg}
+                                average total buys last 20*5m: ${restTotalBuysAvg}
+                                MC: ${first.marketCap}
+                                Total Buys : ${first.totalBuys}
+                                Buy Ratio :${first[buyRatio]}
+                                chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+
+                                `
+                            }
                         }
                     }
                     if (table == 'Contracts15m') {
 
+                        //special 15m alerts go here
+
+
+                        //reversal alerts
+                        if (alertDataSingle[i][volume] > 6000 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000) {
+                            //look back at contracts5m table for the last entries for this coin
+
+                            const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
+
+                            const first = getLimitQuery[0];
+                            const rest = getLimitQuery.slice(1,)
+                            const restVolumeAvg = average(rest.map(r=>r[volume]))
+                            const restTotalBuysAvg = average(rest.map(r=>r.totalBuys))
+                            if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
+                                //possible reversal
+                                const text = `possible 5m reversal on ${first.symbol}
+                                average volume last 20*5m: ${restVolumeAvg}
+                                average total buys last 20*5m: ${restTotalBuysAvg}
+                                MC: ${first.marketCap}
+                                Total Buys : ${first.totalBuys}
+                                Buy Ratio :${first[buyRatio]}
+                                chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+
+                                `
+                            }
+                        }
                     }
                     if (table == 'Contracts1h') {
                         //special hourly alert 1
@@ -246,8 +291,26 @@ export class DatabaseWatcher {
                         }
 
                         //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
-                        if (alertDataSingle[i][volume] >= 15000 && alertDataSingle[i].totalBuys && buyRatio > 0.75) {
-                            console.log('adsfkj')
+                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && buyRatio > 0.75) {
+                            let limit = 10;
+                            const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, limit);
+
+                            const first = getLimitQuery[0];
+                            const rest = getLimitQuery.slice(1,)
+                            const restVolumeAvg = average(rest.map(r=>r[volume]))
+                            const restTotalBuysAvg = average(rest.map(r=>r.totalBuys))
+                            if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg) {
+                                //possible reversal
+                                const text = `possible 1h reversal on ${first.symbol}
+                                average volume last ${limit}*1h: ${restVolumeAvg}
+                                average total buys last ${limit}*1h: ${restTotalBuysAvg}
+                                MC: ${first.marketCap}
+                                Total Buys : ${first.totalBuys}
+                                Buy Ratio :${first[buyRatio]}
+                                chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+
+                                `
+                            }
                         }
 
 
@@ -306,17 +369,6 @@ export class DatabaseWatcher {
     }
 
 
-
-    // async run5mJob() {
-    //     await this.getAlert(10000,25);
-    // }
-
-    // async run15mJob() {
-    //     await this.getAlert(10000,25);
-    // }
-
-
-
   async setUpCommands() {
     const commands = [ 'volume1m', 'volume5m', 'volume15m', 'volume60m', 'volume10MMinThreshold', 'volume1BMinThreshold', 'ageThreshold']
     this.volumeBot.command('help', (ctx)=>{
@@ -362,11 +414,6 @@ export class DatabaseWatcher {
             this.volumeBot.telegram.sendMessage(ctx.chat.id, `${e}`).catch(e=>console.log(e))
         }
     })
-    this.volumeBot.command('testbreak', ()=>{
-        // for (let i = 0; i<500; i++) {
-        //     this.volumeBot.telegram.sendMessage("-706531507",'test')
-        // }
-    })
     this.volumeBot.command('turnbackon', (ctx)=>{
         try {
             const contract = ctx.message.text.match(/\s(0x[0-9A-Za-z]{40})/)[1];
@@ -384,15 +431,9 @@ export class DatabaseWatcher {
     })
 
     this.volumeBot.command('areyouonline', (ctx)=>{
-        this.volumeBot.telegram.sendMessage(this.chatId, `hello ser`, {parse_mode: 'MarkdownV2'})
+        this.volumeBot.telegram.sendMessage(this.chatId, `i am online`, {parse_mode: 'MarkdownV2'})
     })
 
-
-
-
-
-
-    
     commands.forEach(c=>{
         this.volumeBot.command(c, async (ctx)=> {
             const command = `${c} `;
@@ -409,14 +450,6 @@ export class DatabaseWatcher {
     })
     this.volumeBot.launch();
 
-    // this.volumeBot.catch((err, ctx) => {
-    //     if (err.code === 429) {
-    //       console.log('Too Many Requests error');
-    //       // handle the error here, e.g. wait for a certain amount of time before making the next request
-    //     } else {
-    //       console.log('Error occurred:', err);
-    //     }
-    //   });
 }
 
 
