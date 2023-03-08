@@ -22,7 +22,7 @@ export class DatabaseWatcher {
     volume10MMinThreshold = 60000;
     volume1BMinThreshold = 1000000;
     newVolumeAlertsTopic = 3102;
-    contractsToIgnore = ["0xd5De579f8324E3625bDC5E8C6F3dB248614a41C5", "0xC89d9aa9D9E54bb196319c6195AEA1038d2bc936", "0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B"]; //shibone, ,osqth
+    contractsToIgnore = ["0xd5De579f8324E3625bDC5E8C6F3dB248614a41C5", "0x41f7B8b9b897276b7AAE926a9016935280b44E97", "0xC89d9aa9D9E54bb196319c6195AEA1038d2bc936", "0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B"]; //shibone, ,osqth
     pairs = []
     archiveProvider;
     PercentChangeThreshold = {
@@ -53,7 +53,6 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
 
         this.runVolumeJob(1, this.volume1m);
-        this.runContractsJob(5);
         this.setUpCommands();
         this.setIntervals();
         
@@ -308,7 +307,7 @@ export class DatabaseWatcher {
 
 
                         //reversal alerts
-                        if (alertDataSingle[i][volume] > 6000 || alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>1000 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
+                        if (alertDataSingle[i][volume] > 6000 && alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>1000 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -342,7 +341,7 @@ export class DatabaseWatcher {
                     }
                     if (table == 'Contracts1h') {
                         //special hourly alert 1
-                        if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121) {
+                        if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
                             let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${alertDataSingle[i].marketCap}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
