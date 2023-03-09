@@ -44,8 +44,8 @@ app.listen(process.env.PORT, () => {
 });
 
 //const fullNodeIp = "192.168.0.228"
-const archiveNodeIp = "127.0.0.1"
-const httpPort = "8545"
+const archiveNodeIp = "192.168.0.165"
+const httpPort = "9547"
 const wssPort = "9536"
 
 //const fullNodeUrl = `http://${fullNodeIp}:${httpPort}`

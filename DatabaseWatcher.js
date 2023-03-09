@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv';
 import epiwallets4interactions from './epi_wallets/wallets_orderbydesc_4.json' assert { type: "json"};
 
 import epiwallets2interactions from './epi_wallets/wallets_orderbydesc_object_2.json' assert { type: "json"};
+import Constants from "./api/utils/constants.js"
 const chatId_Epi = -1001752055128
 dotenv.config();
 //TOPIC_ID_ETH_WALLETS
@@ -41,6 +42,8 @@ export class DatabaseWatcher {
     //     to100k: {m1: [], m5: [], m15:[]},
     //     to1m: {m1: [], m5: [], m15:[]}
     // }
+    etherscanProvider;
+    blockHeight;
 
     marketCaps = [
         {mc: 100000, topicId: this.to100k, volumeMin: 0,ignoredAlerts: []}
@@ -53,6 +56,7 @@ export class DatabaseWatcher {
         this.volumeBot = new Telegraf(volumeBotKey);
         this.chatId = chatId;
         this.archiveProvider = new ethers.providers.JsonRpcProvider(archiveNodeUrl);
+        this.etherscanProvider = new ethers.providers.EtherscanProvider(null,Constants.apiKey);
         
     }
     async start() {
@@ -62,6 +66,9 @@ export class DatabaseWatcher {
 
         this.node();
 
+        // const swapsForBlock = await this.getSwapsForBlockNumber(16788925);
+        // await this.runFreshWalletJob(swapsForBlock);
+
         
         this.setUpCommands();
 
@@ -69,7 +76,7 @@ export class DatabaseWatcher {
         
 
     }
-
+//16788925
 
     async setIntervals() {
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
@@ -85,28 +92,30 @@ export class DatabaseWatcher {
     async node() {
         this.archiveProvider.on('block', async (blockNumber)=>{
             console.log('latest block: ', blockNumber)
-            await this.runWalletJob(blockNumber-1);
-            await this.runEpiJob(blockNumber-1);
+            this.blockHeight = blockNumber;
+
+            await this.runWalletJobs(blockNumber-1);
+
+
+            // await this.runWalletJob(blockNumber-1);
+            //await this.runEpiJob(blockNumber-1);
         })
     }
 
-    async startTest() {
-        // try { 
-        //     const response = await this.getLimitQuery("Contracts15m", "0xb33bfaB26984a3135D6c36E7E362a1B61cb17A64", 16744036, 20);
-        //     console.log(response)
-        // }
-        // catch(e) {
-        //     console.log(e)
-        // }
-            // this.setUpCommands();
 
-        // this.runVolumeChangeJobHandler();
+    async runWalletJobs(blockNumber) {
 
+        const swapsForBlock = await this.getSwapsForBlockNumber(blockNumber);
+        
+
+        this.runBirdWalletJob(swapsForBlock);
+        //this.runFreshWalletJob(swapsForBlock);
+        //this.runEpiJob(swaps);
     }
 
-    async runWalletJob(blockNumber) {
+    async runBirdWalletJob(swaps) {
         try {
-            const data = await this.getWalletSwaps(blockNumber);
+            const data = swaps.filter(swap=>this.wallets.map(w=>w.address).includes(swap.wallet));
             if (data.length) {
                 for (let d of data) {
                     let walletObject = this.wallets.filter(w=>w.address==d.wallet)[0];
@@ -128,9 +137,44 @@ export class DatabaseWatcher {
         }
     }
 
+    async runFreshWalletJob(swaps) {
+       // console.log('running fresh wallet job', swaps)
+        for (let i in swaps){
+            try {
+
+                const transactionCount = await this.archiveProvider.getTransactionCount(swaps[i].wallet);
+                console.log(transactionCount)
+                if (transactionCount < 5) {
+                    console.log(swaps[i].wallet)
+                    const history = await this.etherscanProvider.getHistory(swaps[i].wallet);
+                    //list of all swaps
+                    let possibleSwapTxHashList = history.filter(tx=>tx.data.length >= 258).map(h=>h.hash);
+                    console.log(possibleSwapTxHashList)
+                    let filteredSwapTxList = possibleSwapTxHashList.filter(hash=>hash != swaps[i].txHash.toLowerCase() || hash != swaps[i].txHash);
+                    if (!filteredSwapTxList.length) {
+                        let messageText = `
+                        FRESH WALLET: ${swaps[i].isBuy == 1 ? `Bought` : `sold`} $${swaps[i].symbol}!
+                        MC: ${swaps[i].marketCap}
+                        Amount: $${swaps[i].usdVolume}
+                        Contract: \`\`\`${swaps[i].contract}\`\`\`
+                        TxHash: https://etherscan.io/tx/${swaps[i].txHash}
+                        Link to wallet: https://etherscan.io/address/${swaps[i].wallet}
+                        Chart: https://dextools.io/app/ether/pair-explorer/${swaps[i].pairAddress}
+                        `
+                        messageText = this.fixText(messageText);
+                        this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_FRESHWALLETS}).catch(e=>console.log(e))
+                    }
+                }
+                
+            } catch(e) {
+                console.log(e)
+            }
+        }
+    }
+
     async runEpiJob(blockNumber) {
         try {
-            const blockSwaps = await this.getAllSwaps(blockNumber);
+            const blockSwaps = await this.getSwapsForBlockNumber(blockNumber);
             let epiSwaps2Interactions = blockSwaps.filter(s=>epiwallets2interactions.map(e=>e.wallet).includes(s.wallet.toLowerCase()) || epiwallets2interactions.map(e=>e.wallet).includes(s.wallet));
             if (epiSwaps2Interactions.length) {
                 for (let d of epiSwaps) {
@@ -168,10 +212,19 @@ export class DatabaseWatcher {
         }
     }
 
-    async getAllSwaps(blockNumber) {
+    async getSwapsForBlockNumber(blockNumber) {
         try {
             const response = await api.get(`/api/swaps/${blockNumber}`);
             return response.data.data;
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
+    async getContractDetails(contract) {
+        try {
+            const response = await api.post(`/api/contractDetails?matching=true`, [contract]);
+            return response.data.data[0];
         } catch(e) {
             console.log(e)
         }
@@ -257,18 +310,6 @@ export class DatabaseWatcher {
                                 averageVolume = restVolumeAvg;
                                 averageBuys = restTotalBuysAvg;
                                 console.log(restVolumeAvg, restTotalBuysAvg)
-                                // if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg) {
-                                //     //possible reversal
-                                //     const text = `possible 5m reversal on ${first.symbol}
-                                //     average volume last 20*5m: ${restVolumeAvg}
-                                //     average total buys last 20*5m: ${restTotalBuysAvg}
-                                //     MC: ${first.marketCap}
-                                //     Total Buys : ${first.totalBuys}
-                                //     Buy Ratio :${first[buyRatio]}
-                                //     chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
-
-                                //     `
-                                // }
                             }
                             let messageText = `$${symbol}: ${time}m: $${sm}. MC:${mc}
                             Total buys: ${totalBuys}

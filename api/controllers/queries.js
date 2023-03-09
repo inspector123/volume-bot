@@ -540,6 +540,24 @@ CREATE TABLE Pairs(id int NOT NULL AUTO_INCREMENT,
   etherPrice double,
    marketCap double,
       pairAddress varchar(50),
+      dateTime varchar(50),
+  PRIMARY KEY(id)
+  );
+
+CREATE TABLE FreshWalletSwaps(id int NOT NULL AUTO_INCREMENT,
+  blockNumber double,
+  symbol varchar(50),
+  contract varchar(50),
+  usdVolume double,
+  usdPrice double,
+  isBuy int,
+  txHash varchar(100),
+  wallet varchar(50),
+  router varchar(50),
+  etherPrice double,
+   marketCap double,
+      pairAddress varchar(50),
+      dateTime varchar(50),
   PRIMARY KEY(id)
   );
     CREATE TABLE EpiWalletSwaps(id int NOT NULL AUTO_INCREMENT,
