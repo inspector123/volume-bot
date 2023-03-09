@@ -101,7 +101,7 @@ export const getBlock = (req, res, next) => {
         });
     });
   }
-  if (req.query.sortBySymbol) {
+  else if (req.query.sortBySymbol) {
     conn.query(
       "SELECT contract, sum(usdVolume) as volume, max(symbol) as symbol, max(marketCap) as marketCap, max(usdPrice) as price, sum(IF(isBuy=1,isBuy*usdVolume, 0)) as sumBuys, sum(IF(isBuy=-1, usdVolume, 0)) as sumSells, sum(IF(isBuy=1, isBuy,0)) as totalBuys, sum(IF(isBuy=-1, isBuy*-1, 0)) as totalSells FROM MainSwaps WHERE blockNumber between ? and (select max(blockNumber)) GROUP BY contract ORDER BY sum(usdVolume) desc;",
       [req.params.blockNumber],
@@ -114,7 +114,7 @@ export const getBlock = (req, res, next) => {
         });
       }
     );
-  } if(req.query.max) {
+  } else if(req.query.max) {
     conn.query(
       "SELECT max(blockNumber) as maxBlockNumber from MainSwaps",
       function (err, data, fields) {
@@ -126,7 +126,7 @@ export const getBlock = (req, res, next) => {
         });
     });
   }
-  if (req.query.count) {
+  else if (req.query.count) {
     conn.query(
       "SELECT count(id) as count from ContractDetailswaps",
       function (err, data, fields) {
@@ -137,7 +137,18 @@ export const getBlock = (req, res, next) => {
           data: data,
         });
     });
-  } 
+  } else {
+    conn.query(
+      `SELECT * from MainSwaps where blockNumber=${req.params.blockNumber}`,
+      function (err, data, fields) {
+        if(err) return next(new AppError(err))
+        res.status(200).json({
+          status: "success",
+          length: data?.length,
+          data: data,
+        });
+    });
+  }
   // if (req.query.max) {
   //   conn.query(
   //     "SELECT contract, max(blockNumber) as latestBlock, max(pairAddress) as pairAddress from ContractDetailswaps where contract = ?", [req.params.contract],

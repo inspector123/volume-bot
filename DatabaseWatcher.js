@@ -3,6 +3,9 @@ import api from "./api/utils/axios.js"
 import { Telegraf } from "telegraf"
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
+import epiwallets4interactions from './epi_wallets/wallets_orderbydesc_4.json' assert { type: "json"};
+import epiwallets2interactions from './epi_wallets/wallets_orderbydesc_object_2.json' assert { type: "json"};
+const chatId_Epi = -1001752055128
 dotenv.config();
 //TOPIC_ID_ETH_WALLETS
 
@@ -81,7 +84,8 @@ export class DatabaseWatcher {
     async node() {
         this.archiveProvider.on('block', async (blockNumber)=>{
             console.log('latest block: ', blockNumber)
-            await this.runWalletJob(blockNumber);
+            await this.runWalletJob(blockNumber-1);
+            await this.runEpiJob(blockNumber-1);
         })
     }
 
@@ -101,7 +105,7 @@ export class DatabaseWatcher {
 
     async runWalletJob(blockNumber) {
         try {
-            const data = await this.getWalletSwaps(blockNumber-1);
+            const data = await this.getWalletSwaps(blockNumber);
             if (data.length) {
                 for (let d of data) {
                     let walletObject = this.wallets.filter(w=>w.address==d.wallet)[0];
@@ -122,6 +126,56 @@ export class DatabaseWatcher {
             console.log(e)
         }
     }
+
+    async runEpiJob(blockNumber) {
+        try {
+            const blockSwaps = await this.getAllSwaps(blockNumber);
+            let epiSwaps2Interactions = blockSwaps.filter(s=>epiwallets2interactions.includes(s.wallet.toLowerCase()) || epiwallets2interactions.includes(s.wallet));
+            if (epiSwaps2Interactions.length) {
+                for (let d of epiSwaps) {
+                    let messageText = `
+                    An epi wallet ${d.isBuy == 1 ? `bought` : `sold`} $${d.symbol}!
+                    MC: ${d.marketCap}
+                    Amount: $${d.usdVolume}
+                    Contract: \`\`\`${d.contract}\`\`\`
+                    TxHash: https://etherscan.io/tx/${d.txHash}
+                    Link to wallet: https://etherscan.io/address/${d.wallet}
+                    Chart: https://dextools.io/app/ether/pair-explorer/${d.pairAddress}
+                    `
+                    messageText = this.fixText(messageText);
+                    this.volumeBot.telegram.sendMessage(chatId_Epi, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: 5}).catch(e=>console.log(e))
+                }
+            }
+            let epiSwaps4Interactions = blockSwaps.filter(s=>epiwallets4interactions.includes(s.wallet.toLowerCase()) || epiwallets4interactions.includes(s.wallet));
+            if (epiSwaps4Interactions.length) {
+                for (let d of epiSwaps) {
+                    let messageText = `
+                    An epi wallet ${d.isBuy == 1 ? `bought` : `sold`} $${d.symbol}!
+                    MC: ${d.marketCap}
+                    Amount: $${d.usdVolume}
+                    Contract: \`\`\`${d.contract}\`\`\`
+                    TxHash: https://etherscan.io/tx/${d.txHash}
+                    Link to wallet: https://etherscan.io/address/${d.wallet}
+                    Chart: https://dextools.io/app/ether/pair-explorer/${d.pairAddress}
+                    `
+                    messageText = this.fixText(messageText);
+                    this.volumeBot.telegram.sendMessage(chatId_Epi, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: 2}).catch(e=>console.log(e))
+                }
+            }
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
+    async getAllSwaps(blockNumber) {
+        try {
+            const response = await api.get(`/api/swaps/${blockNumber}`);
+            return response.data.data;
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
 
     async getWalletSwaps(blockNumber) {
         try {
