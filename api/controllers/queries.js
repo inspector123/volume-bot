@@ -55,6 +55,33 @@ export const createSwap = async (req, res, next) => {
   return;
 
 }
+
+//POST /swaps/:blockNumber
+export const getWalletsForBlock = (req,res,next) => {
+  const values = req.body;
+  console.log(req.params.blockNumber)
+  conn.query(
+    `SELECT * from MainSwaps where wallet in (?) and blockNumber = ${req.params.blockNumber}`,
+    [values],
+    function (err, data, fields) {
+      if (err) return next(new AppError(err, 500));
+      res.status(200).json({
+        status: "success",
+        length: data?.length,
+        data: data,
+      });
+    }
+
+  )
+}
+
+
+
+
+
+
+
+
   //for contract, what do i want to do?
 
 

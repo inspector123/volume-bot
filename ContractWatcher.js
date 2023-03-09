@@ -385,7 +385,10 @@ class ContractWatcher {
             const postObjects = await Promise.all(newContracts.map(async sym=>{
                 let liqAddBlock = 0, liqAddTimestamp = 0;
                 const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock && response.liqAddTimestamp) {
+                if (response.liqAddBlock == undefined) {
+                    console.log(sym.contract);
+                }
+                if (response.liqAddBlock != undefined && response.liqAddTimestamp != undefined) {
                     liqAddBlock = response.liqAddBlock;
                     liqAddTimestamp = response.liqAddTimestamp;
                 }

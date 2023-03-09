@@ -1,9 +1,10 @@
 
 import api from "./api/utils/axios.js"
-import {Telegraf} from "telegraf"
+import { Telegraf } from "telegraf"
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
 dotenv.config();
+//TOPIC_ID_ETH_WALLETS
 
 export class DatabaseWatcher {
 
@@ -24,6 +25,7 @@ export class DatabaseWatcher {
     newVolumeAlertsTopic = 3102;
     contractsToIgnore = ["0xd5De579f8324E3625bDC5E8C6F3dB248614a41C5", "0x41f7B8b9b897276b7AAE926a9016935280b44E97", "0xC89d9aa9D9E54bb196319c6195AEA1038d2bc936", "0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B"]; //shibone, ,osqth
     pairs = []
+    wallets = [{address:"0xee7Ad10fBf6bAE8f53A7AF42c78659a49aE3aBdF", name:"Bird 1 ee7a"}, {address:"0xB60bFd02207823360263Ed5886c9f3c240A05045", name:"Bird 2 b60b"}, {address: "0xDf043d2D5aD5f618e74f793B976E30605DC7a1d4", name:"Bird Possible 3"}]
     archiveProvider;
     PercentChangeThreshold = {
         m15: 100,
@@ -53,7 +55,12 @@ export class DatabaseWatcher {
         //setInterval(()=>run1mJob(),600000);
 
         this.runVolumeJob(1, this.volume1m);
+
+        this.node();
+
+        
         this.setUpCommands();
+
         this.setIntervals();
         
 
@@ -71,6 +78,13 @@ export class DatabaseWatcher {
         setInterval(()=>this.runContractsJob(60),60*60*1000);
     }
 
+    async node() {
+        this.archiveProvider.on('block', async (blockNumber)=>{
+            console.log('latest block: ', blockNumber)
+            await this.runWalletJob(blockNumber);
+        })
+    }
+
     async startTest() {
         // try { 
         //     const response = await this.getLimitQuery("Contracts15m", "0xb33bfaB26984a3135D6c36E7E362a1B61cb17A64", 16744036, 20);
@@ -83,6 +97,39 @@ export class DatabaseWatcher {
 
         // this.runVolumeChangeJobHandler();
 
+    }
+
+    async runWalletJob(blockNumber) {
+        try {
+            const data = await this.getWalletSwaps(blockNumber-1);
+            if (data.length) {
+                for (let d of data) {
+                    let walletObject = this.wallets.filter(w=>w.address==d.wallet)[0];
+                    let messageText = `
+                    ${walletObject.name} ${d.isBuy == 1 ? `bought` : `sold`} $${d.symbol}!
+                    MC: ${d.marketCap}
+                    Amount: $${d.usdVolume}
+                    Contract: \`\`\`${d.contract}\`\`\`
+                    TxHash: https://etherscan.io/tx/${d.txHash}
+                    Link to wallet: https://etherscan.io/address/${d.wallet}
+                    Chart: https://dextools.io/app/ether/pair-explorer/${d.pairAddress}
+                    `
+                    messageText = this.fixText(messageText);
+                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_WALLETS}).catch(e=>console.log(e))
+                }
+            }
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
+    async getWalletSwaps(blockNumber) {
+        try {
+            const response = await api.post(`/api/swaps/${blockNumber}`, this.wallets.map(w=>w.address))
+            return response.data.data
+        } catch(e) {
+            console.log(e)
+        }
     }
 
     async getAlert(blocks, volume) {

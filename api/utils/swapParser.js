@@ -25,8 +25,8 @@ class SwapParser {
 
     currentBlockSwaps = [];
     httpProvider;
-    etherPrice = 1200;
-    btcPrice = 16900;
+    etherPrice = 1600;
+    btcPrice = 22000;
     allPairsData = [];
     newPairsData = [];
     postedPairsData = [];
