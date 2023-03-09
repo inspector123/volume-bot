@@ -19,9 +19,9 @@ export class DatabaseWatcher {
     to10m = 6;
     to1b  = 8;
     //volume1m=1;
-    volume1m = 7000;
-    volume5m = 9000;
-    volume15m = 25000;
+    volume1m = 5000;
+    volume5m = 7000;
+    volume15m = 12000;
     volume30m = 45000;
     volume60m = 100000;
     volume240m = 25000000;
