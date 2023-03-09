@@ -4,6 +4,7 @@ import { Telegraf } from "telegraf"
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
 import epiwallets4interactions from './epi_wallets/wallets_orderbydesc_4.json' assert { type: "json"};
+
 import epiwallets2interactions from './epi_wallets/wallets_orderbydesc_object_2.json' assert { type: "json"};
 const chatId_Epi = -1001752055128
 dotenv.config();
@@ -130,7 +131,7 @@ export class DatabaseWatcher {
     async runEpiJob(blockNumber) {
         try {
             const blockSwaps = await this.getAllSwaps(blockNumber);
-            let epiSwaps2Interactions = blockSwaps.filter(s=>epiwallets2interactions.includes(s.wallet.toLowerCase()) || epiwallets2interactions.includes(s.wallet));
+            let epiSwaps2Interactions = blockSwaps.filter(s=>epiwallets2interactions.map(e=>e.wallet).includes(s.wallet.toLowerCase()) || epiwallets2interactions.map(e=>e.wallet).includes(s.wallet));
             if (epiSwaps2Interactions.length) {
                 for (let d of epiSwaps) {
                     let messageText = `
@@ -146,7 +147,7 @@ export class DatabaseWatcher {
                     this.volumeBot.telegram.sendMessage(chatId_Epi, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: 5}).catch(e=>console.log(e))
                 }
             }
-            let epiSwaps4Interactions = blockSwaps.filter(s=>epiwallets4interactions.includes(s.wallet.toLowerCase()) || epiwallets4interactions.includes(s.wallet));
+            let epiSwaps4Interactions = blockSwaps.filter(s=>epiwallets4interactions.map(e=>e.wallet).includes(s.wallet.toLowerCase()) || epiwallets4interactions.map(e=>e.wallet).includes(s.wallet));
             if (epiSwaps4Interactions.length) {
                 for (let d of epiSwaps) {
                     let messageText = `
@@ -154,7 +155,7 @@ export class DatabaseWatcher {
                     MC: ${d.marketCap}
                     Amount: $${d.usdVolume}
                     Contract: \`\`\`${d.contract}\`\`\`
-                    TxHash: https://etherscan.io/tx/${d.txHash}
+                    TxHash: https://etherscan.io/tx/lo${d.txHash}
                     Link to wallet: https://etherscan.io/address/${d.wallet}
                     Chart: https://dextools.io/app/ether/pair-explorer/${d.pairAddress}
                     `
