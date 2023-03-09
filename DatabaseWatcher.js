@@ -370,7 +370,7 @@ export class DatabaseWatcher {
 
                         //5m reversal
                         //console.log(alertDataSingle[i].buyRatio5m, parseInt(alertDataSingle[i].buyRatio5m)>0.75)
-                        if (alertDataSingle[i][volume] > 5000 && alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && parseInt(alertDataSingle[i].buyRatio5m) > 0.9) {
+                        if (alertDataSingle[i][volume] > 3000 && alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && parseInt(alertDataSingle[i].buyRatio5m) > 0.75) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -381,7 +381,7 @@ export class DatabaseWatcher {
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
                                 console.log(restVolumeAvg, restTotalBuysAvg)
-                                if (first[volume] > 10*restVolumeAvg && first.totalBuys > 10*restTotalBuysAvg) {
+                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && restTotalBuysAvg<1000) {
                                     //possible reversal
                                     let  messageText = `possible 5m reversal on ${first.symbol}
 
@@ -418,7 +418,7 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg && first.totalBuys > 10) {
+                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 10) {
                                     //possible reversal
                                     let messageText = `possible 15m reversal on ${first.symbol}
                                    
@@ -461,7 +461,7 @@ export class DatabaseWatcher {
                         }
 
                         //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
-                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && alertDataSingle[i][buyRatio] > 0.75 && alertDataSingle[i].ageInMinutes>1000) {
+                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && parseInt(alertDataSingle[i][buyRatio]) > 0.5 && alertDataSingle[i].ageInMinutes>1000) {
                             let limit = 10;
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, limit);
 
@@ -470,7 +470,7 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 8*restVolumeAvg && first.totalBuys > 8*restTotalBuysAvg && first.totalBuys > 30) {
+                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 30) {
                                     //possible reversal
                                     let messageText = `possible 1h reversal on ${first.symbol}
                                    
