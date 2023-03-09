@@ -279,37 +279,37 @@ class ContractWatcher {
             //console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
-            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length)
-            const postObjects = await Promise.all(newContracts.map(async sym=>{
-                let liqAddBlock = 0, liqAddTimestamp = 0;
-                const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock && response.liqAddTimestamp) {
-                    liqAddBlock = response.liqAddBlock;
-                    liqAddTimestamp = response.liqAddTimestamp;
-                }
-                const liqLockBlock = 0, renounceBlock = 0;
-                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
-                // let renounceBlock = await this.getRenounceBlock(sym.contract);
-                return {
-                    symbol: sym.symbol,
-                    contract: sym.contract,
-                    liqAddBlock,
-                    liqAddTimestamp,
-                    liqLockBlock: liqLockBlock || 0,
-                    renounceBlock: renounceBlock || 0
-                }
-            }));
+            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            // console.log('newContracts length', newContracts.length)
+            // const postObjects = await Promise.all(newContracts.map(async sym=>{
+            //     let liqAddBlock = 0, liqAddTimestamp = 0;
+            //     const response =  await this.getLiqAddBlock(sym.contract);
+            //     if (response.liqAddBlock && response.liqAddTimestamp) {
+            //         liqAddBlock = response.liqAddBlock;
+            //         liqAddTimestamp = response.liqAddTimestamp;
+            //     }
+            //     const liqLockBlock = 0, renounceBlock = 0;
+            //     // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+            //     // let renounceBlock = await this.getRenounceBlock(sym.contract);
+            //     return {
+            //         symbol: sym.symbol,
+            //         contract: sym.contract,
+            //         liqAddBlock,
+            //         liqAddTimestamp,
+            //         liqLockBlock: liqLockBlock || 0,
+            //         renounceBlock: renounceBlock || 0
+            //     }
+            // }));
 
 
-            console.log('got liq add blocks')
-            await this.postContracts(postObjects);
+            // console.log('got liq add blocks')
+            // await this.postContracts(postObjects);
 
             //STEP 2: add to time contract table.
 
 
             //existingContracts and newContracts with postObjects
-            const allContracts = [...existingContractsData, ...postObjects].flat();
+            const allContracts = [...existingContractsData ].flat();
             let contractObjects = []
             for (let i in allContracts) {
                 const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
@@ -380,40 +380,40 @@ class ContractWatcher {
             //console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
-            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length)
-            const postObjects = await Promise.all(newContracts.map(async sym=>{
-                let liqAddBlock = 0, liqAddTimestamp = 0;
-                const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock == undefined) {
-                    console.log(sym.contract);
-                }
-                if (response.liqAddBlock != undefined && response.liqAddTimestamp != undefined) {
-                    liqAddBlock = response.liqAddBlock;
-                    liqAddTimestamp = response.liqAddTimestamp;
-                }
-                const liqLockBlock = 0, renounceBlock = 0;
-                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
-                // let renounceBlock = await this.getRenounceBlock(sym.contract);
-                return {
-                    symbol: sym.symbol,
-                    contract: sym.contract,
-                    liqAddBlock,
-                    liqAddTimestamp,
-                    liqLockBlock: liqLockBlock || 0,
-                    renounceBlock: renounceBlock || 0
-                }
-            }));
+            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            // console.log('newContracts length', newContracts.length)
+            // const postObjects = await Promise.all(newContracts.map(async sym=>{
+            //     let liqAddBlock = 0, liqAddTimestamp = 0;
+            //     const response =  await this.getLiqAddBlock(sym.contract);
+            //     if (response.liqAddBlock == undefined) {
+            //         console.log(sym.contract);
+            //     }
+            //     if (response.liqAddBlock != undefined && response.liqAddTimestamp != undefined) {
+            //         liqAddBlock = response.liqAddBlock;
+            //         liqAddTimestamp = response.liqAddTimestamp;
+            //     }
+            //     const liqLockBlock = 0, renounceBlock = 0;
+            //     // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+            //     // let renounceBlock = await this.getRenounceBlock(sym.contract);
+            //     return {
+            //         symbol: sym.symbol,
+            //         contract: sym.contract,
+            //         liqAddBlock,
+            //         liqAddTimestamp,
+            //         liqLockBlock: liqLockBlock || 0,
+            //         renounceBlock: renounceBlock || 0
+            //     }
+            // }));
 
 
-            console.log('got liq add blocks')
-            await this.postContracts(postObjects);
+            // console.log('got liq add blocks')
+            // await this.postContracts(postObjects);
 
             //STEP 2: add to time contract table.
 
 
             //existingContracts and newContracts with postObjects
-            const allContracts = [...existingContractsData, ...postObjects].flat();
+            const allContracts = [...existingContractsData ].flat();
             let contractObjects = []
             for (let i in allContracts) {
                 const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
@@ -484,37 +484,37 @@ class ContractWatcher {
             //console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
-            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length)
-            const postObjects = await Promise.all(newContracts.map(async sym=>{
-                let liqAddBlock = 0, liqAddTimestamp = 0;
-                const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock && response.liqAddTimestamp) {
-                    liqAddBlock = response.liqAddBlock;
-                    liqAddTimestamp = response.liqAddTimestamp;
-                }
-                const liqLockBlock = 0, renounceBlock = 0;
-                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
-                // let renounceBlock = await this.getRenounceBlock(sym.contract);
-                return {
-                    symbol: sym.symbol,
-                    contract: sym.contract,
-                    liqAddBlock,
-                    liqAddTimestamp,
-                    liqLockBlock: liqLockBlock || 0,
-                    renounceBlock: renounceBlock || 0
-                }
-            }));
+            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            // console.log('newContracts length', newContracts.length)
+            // const postObjects = await Promise.all(newContracts.map(async sym=>{
+            //     let liqAddBlock = 0, liqAddTimestamp = 0;
+            //     const response =  await this.getLiqAddBlock(sym.contract);
+            //     if (response.liqAddBlock && response.liqAddTimestamp) {
+            //         liqAddBlock = response.liqAddBlock;
+            //         liqAddTimestamp = response.liqAddTimestamp;
+            //     }
+            //     const liqLockBlock = 0, renounceBlock = 0;
+            //     // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+            //     // let renounceBlock = await this.getRenounceBlock(sym.contract);
+            //     return {
+            //         symbol: sym.symbol,
+            //         contract: sym.contract,
+            //         liqAddBlock,
+            //         liqAddTimestamp,
+            //         liqLockBlock: liqLockBlock || 0,
+            //         renounceBlock: renounceBlock || 0
+            //     }
+            // }));
 
 
-            console.log('got liq add blocks')
-            await this.postContracts(postObjects);
+            // console.log('got liq add blocks')
+            // await this.postContracts(postObjects);
 
             //STEP 2: add to time contract table.
 
 
             //existingContracts and newContracts with postObjects
-            const allContracts = [...existingContractsData, ...postObjects].flat();
+            const allContracts = [...existingContractsData ].flat();
             let contractObjects = []
             for (let i in allContracts) {
                 const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
@@ -585,37 +585,37 @@ class ContractWatcher {
             //console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
-            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length)
-            const postObjects = await Promise.all(newContracts.map(async sym=>{
-                let liqAddBlock = 0, liqAddTimestamp = 0;
-                const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock && response.liqAddTimestamp) {
-                    liqAddBlock = response.liqAddBlock;
-                    liqAddTimestamp = response.liqAddTimestamp;
-                }
-                const liqLockBlock = 0, renounceBlock = 0;
-                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
-                // let renounceBlock = await this.getRenounceBlock(sym.contract);
-                return {
-                    symbol: sym.symbol,
-                    contract: sym.contract,
-                    liqAddBlock,
-                    liqAddTimestamp,
-                    liqLockBlock: liqLockBlock || 0,
-                    renounceBlock: renounceBlock || 0
-                }
-            }));
+            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            // console.log('newContracts length', newContracts.length)
+            // const postObjects = await Promise.all(newContracts.map(async sym=>{
+            //     let liqAddBlock = 0, liqAddTimestamp = 0;
+            //     const response =  await this.getLiqAddBlock(sym.contract);
+            //     if (response.liqAddBlock && response.liqAddTimestamp) {
+            //         liqAddBlock = response.liqAddBlock;
+            //         liqAddTimestamp = response.liqAddTimestamp;
+            //     }
+            //     const liqLockBlock = 0, renounceBlock = 0;
+            //     // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+            //     // let renounceBlock = await this.getRenounceBlock(sym.contract);
+            //     return {
+            //         symbol: sym.symbol,
+            //         contract: sym.contract,
+            //         liqAddBlock,
+            //         liqAddTimestamp,
+            //         liqLockBlock: liqLockBlock || 0,
+            //         renounceBlock: renounceBlock || 0
+            //     }
+            // }));
 
 
-            console.log('got liq add blocks')
-            await this.postContracts(postObjects);
+            // console.log('got liq add blocks')
+            // await this.postContracts(postObjects);
 
             //STEP 2: add to time contract table.
 
 
             //existingContracts and newContracts with postObjects
-            const allContracts = [...existingContractsData, ...postObjects].flat();
+            const allContracts = [...existingContractsData ].flat();
             let contractObjects = []
             for (let i in allContracts) {
                 const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
@@ -686,37 +686,37 @@ class ContractWatcher {
             //console.log('matching', existingContracts.data.data.length)
 
             //for contracts that don't exist, get their age and add them
-            const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
-            console.log('newContracts length', newContracts.length, newContracts)
-            const postObjects = await Promise.all(newContracts.map(async sym=>{
-                let liqAddBlock = 0, liqAddTimestamp = 0;
-                const response =  await this.getLiqAddBlock(sym.contract);
-                if (response.liqAddBlock && response.liqAddTimestamp) {
-                    liqAddBlock = response.liqAddBlock;
-                    liqAddTimestamp = response.liqAddTimestamp;
-                }
-                const liqLockBlock = 0, renounceBlock = 0;
-                // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
-                // let renounceBlock = await this.getRenounceBlock(sym.contract);
-                return {
-                    symbol: sym.symbol,
-                    contract: sym.contract,
-                    liqAddBlock: liqAddBlock ? liqAddBlock : 0,
-                    liqAddTimestamp: liqAddTimestamp ? liqAddTimestamp : 0,
-                    liqLockBlock: liqLockBlock || 0,
-                    renounceBlock: renounceBlock || 0
-                }
-            }));
+            // const newContracts = sortedVolume.filter(symbol=>!existingContractsData.map(d=>d.contract).includes(symbol.contract));
+            // console.log('newContracts length', newContracts.length, newContracts)
+            // const postObjects = await Promise.all(newContracts.map(async sym=>{
+            //     let liqAddBlock = 0, liqAddTimestamp = 0;
+            //     const response =  await this.getLiqAddBlock(sym.contract);
+            //     if (response.liqAddBlock && response.liqAddTimestamp) {
+            //         liqAddBlock = response.liqAddBlock;
+            //         liqAddTimestamp = response.liqAddTimestamp;
+            //     }
+            //     const liqLockBlock = 0, renounceBlock = 0;
+            //     // const liqLockBlock = await this.getLiqLockBlock(sym.contract);
+            //     // let renounceBlock = await this.getRenounceBlock(sym.contract);
+            //     return {
+            //         symbol: sym.symbol,
+            //         contract: sym.contract,
+            //         liqAddBlock: liqAddBlock ? liqAddBlock : 0,
+            //         liqAddTimestamp: liqAddTimestamp ? liqAddTimestamp : 0,
+            //         liqLockBlock: liqLockBlock || 0,
+            //         renounceBlock: renounceBlock || 0
+            //     }
+            // }));
 
 
-            console.log('got liq add blocks')
-            await this.postContracts(postObjects);
+            // console.log('got liq add blocks')
+            // await this.postContracts(postObjects);
 
             //STEP 2: add to time contract table.
 
 
             //existingContracts and newContracts with postObjects
-            const allContracts = [...existingContractsData, ...postObjects].flat();
+            const allContracts = [...existingContractsData ].flat();
             let contractObjects = []
             for (let i in allContracts) {
                 const getExistingVolume = sortedVolume.filter(s=>s.contract == allContracts[i].contract)[0];
