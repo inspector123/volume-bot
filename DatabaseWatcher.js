@@ -79,6 +79,10 @@ export class DatabaseWatcher {
 //16788925
 
     async setIntervals() {
+        // this.runContractsJob(5);
+        // this.runContractsJob(15);
+        // this.runContractsJob(60);
+
         setInterval(()=>this.runVolumeJob(1, this.volume1m),1*60*1000);
         setInterval(()=>this.runVolumeJob(5, this.volume5m),5*60*1000);
         setInterval(()=>this.runVolumeJob(15, this.volume15m),15*60*1000);
@@ -113,13 +117,26 @@ export class DatabaseWatcher {
         //this.runEpiJob(swaps);
     }
 
+    async checkIfNewBirdCoin(contract){
+        try {
+            const response = await api.post(`/api/wallets/${contract}`, this.wallets.map(w=>w.address))
+            return response.data.data[0].count;
+        } catch(e) {
+            console.log(e)
+
+        }
+    }
+
     async runBirdWalletJob(swaps) {
         try {
             const data = swaps.filter(swap=>this.wallets.map(w=>w.address).includes(swap.wallet));
             if (data.length) {
                 for (let d of data) {
+                    let previousSwaps = 1;
                     let walletObject = this.wallets.filter(w=>w.address==d.wallet)[0];
+                    if (d.isBuy == 1) previousSwaps = await this.checkIfNewBirdCoin(d.contract);
                     let messageText = `
+                    ${previousSwaps == 0 && d.isBuy==1 ? `New Bird Coin!!` : ``}
                     ${walletObject.name} ${d.isBuy == 1 ? `bought` : `sold`} $${d.symbol}!
                     MC: ${d.marketCap}
                     Amount: $${d.usdVolume}
@@ -143,13 +160,13 @@ export class DatabaseWatcher {
             try {
 
                 const transactionCount = await this.archiveProvider.getTransactionCount(swaps[i].wallet);
-                console.log(transactionCount)
+               // console.log(transactionCount)
                 if (transactionCount < 5) {
-                    console.log(swaps[i].wallet)
+                   // console.log(swaps[i].wallet)
                     const history = await this.etherscanProvider.getHistory(swaps[i].wallet);
                     //list of all swaps
                     let possibleSwapTxHashList = history.filter(tx=>tx.data.length >= 258).map(h=>h.hash);
-                    console.log(possibleSwapTxHashList)
+                  //  console.log(possibleSwapTxHashList)
                     let filteredSwapTxList = possibleSwapTxHashList.filter(hash=>hash != swaps[i].txHash.toLowerCase() || hash != swaps[i].txHash);
                     if (!filteredSwapTxList.length) {
                         let messageText = `
@@ -392,26 +409,26 @@ export class DatabaseWatcher {
                     const pairAddress = this.getPair(alertDataSingle[i].contract);
                     if (table == 'Contracts5m') {
                         //5m alert 1: odoge
-                        if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m>4500) {
-                            let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. highest MC:${alertDataSingle[i].marketCap}
-                                    Age: ${alertDataSingle[i].ageInMinutes}
-                                    Buys: ${alertDataSingle[i].totalBuys}
-                                    Buy Ratio: ${alertDataSingle[i].buyRatio5m}
-                                    Volume: ${alertDataSingle[i].volume5m}
-                                    Contract: \`\`\`${alertDataSingle[i].contract}\`\`\`
-                                    Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
+                        // if (alertDataSingle[i].ageInMinutes < 11 && alertDataSingle[i].totalBuys > 20 && alertDataSingle[i].buyRatio5m == 1 && alertDataSingle[i].volume5m>4500) {
+                        //     let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume5m}. highest MC:${alertDataSingle[i].marketCap}
+                        //             Age: ${alertDataSingle[i].ageInMinutes}
+                        //             Buys: ${alertDataSingle[i].totalBuys}
+                        //             Buy Ratio: ${alertDataSingle[i].buyRatio5m}
+                        //             Volume: ${alertDataSingle[i].volume5m}
+                        //             Contract: \`\`\`${alertDataSingle[i].contract}\`\`\`
+                        //             Chart: https://dextools.io/app/ether/pair-explorer/${pairAddress}
 
-                                    This alert was designed from ODOGE launch.
-                                    age<11,totalBuys>20,buyRatio==1,volume5m>6000 (changed to 4500 for more flex)
-                                    `
-                                    console.log(messageText)
-                                    messageText = this.fixText(messageText)
-                                    this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
-                        }
+                        //             This alert was designed from ODOGE launch.
+                        //             age<11,totalBuys>20,buyRatio==1,volume5m>6000 (changed to 4500 for more flex)
+                        //             `
+                        //             console.log(messageText)
+                        //             messageText = this.fixText(messageText)
+                        //             this.volumeBot.telegram.sendMessage(this.chatId, messageText, {parse_mode: 'MarkdownV2', reply_to_message_id: process.env.TOPIC_ID_ETH_NEW_VOLUME_ALERTS}).catch(e=>console.log(e))
+                        // }
 
                         //5m reversal
                         //console.log(alertDataSingle[i].buyRatio5m, parseInt(alertDataSingle[i].buyRatio5m)>0.75)
-                        if (alertDataSingle[i][volume] > 3000 && alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && parseInt(alertDataSingle[i].buyRatio5m) > 0.75) {
+                        if (alertDataSingle[i][volume] > 3000 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && parseInt(alertDataSingle[i].buyRatio5m) > 0.75) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -450,7 +467,7 @@ export class DatabaseWatcher {
 
 
                         //reversal alerts
-                        if (alertDataSingle[i][volume] > 6000 && alertDataSingle[i].totalBuys >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>1000 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
+                        if (alertDataSingle[i][volume] > 6000 && parseInt(alertDataSingle[i].totalBuys) >= 10 && alertDataSingle[i].marketCap < 1000000 && alertDataSingle[i].ageInMinutes>100 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
                             //look back at contracts5m table for the last entries for this coin
 
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, 20);
@@ -459,7 +476,7 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 10) {
+                                if (first[volume] > 5*restVolumeAvg /*&& first.totalBuys > 3*restTotalBuysAvg && first.totalBuys > 10*/) {
                                     //possible reversal
                                     let messageText = `possible 15m reversal on ${first.symbol}
                                    
@@ -484,7 +501,7 @@ export class DatabaseWatcher {
                     }
                     if (table == 'Contracts1h') {
                         //special hourly alert 1
-                        if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 20000 && alertDataSingle[i].totalBuys > 100 && alertDataSingle[i].ageInMinutes < 121 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
+                        if (alertDataSingle[i].marketCap > 50000 && alertDataSingle[i].volume1h > 10000 && alertDataSingle[i].totalBuys > 25 && alertDataSingle[i].ageInMinutes < 121 && parseInt(alertDataSingle[i].buyRatio)>0.75) {
                             let messageText = `ALERT ON $${alertDataSingle[i].symbol}: ${time}m: $${alertDataSingle[i].volume1h}. MC:${alertDataSingle[i].marketCap}
                                     Age: ${alertDataSingle[i].ageInMinutes}
                                     Buys: ${alertDataSingle[i].totalBuys}
@@ -502,7 +519,7 @@ export class DatabaseWatcher {
                         }
 
                         //reversal 1: shibtc, volume jumped from basically nothing to 17022 with buyRatio=0.8 & 32 buys
-                        if (alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 && parseInt(alertDataSingle[i][buyRatio]) > 0.5 && alertDataSingle[i].ageInMinutes>1000) {
+                        if (parseInt(alertDataSingle[i][buyRatio]) > 0.8 /* && alertDataSingle[i][volume] >= 17000 && alertDataSingle[i].totalBuys > 30 &&  && alertDataSingle[i].ageInMinutes>1000 */) {
                             let limit = 10;
                             const getLimitQuery = await this.getLimitQuery(table, alertDataSingle[i].contract, alertDataSingle[i].blockNumber, limit);
 
@@ -511,7 +528,7 @@ export class DatabaseWatcher {
                                 const rest = getLimitQuery.slice(1,)
                                 const restVolumeAvg = this.average(rest.map(r=>r[volume]))
                                 const restTotalBuysAvg = this.average(rest.map(r=>r.totalBuys))
-                                if (first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 30) {
+                                if (first[volume]>10000 && restVolumeAvg<1000 /*first[volume] > 5*restVolumeAvg && first.totalBuys > 5*restTotalBuysAvg && first.totalBuys > 30*/) {
                                     //possible reversal
                                     let messageText = `possible 1h reversal on ${first.symbol}
                                    

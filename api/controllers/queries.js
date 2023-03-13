@@ -56,12 +56,12 @@ export const createSwap = async (req, res, next) => {
 
 }
 
-//POST /swaps/:blockNumber
-export const getWalletsForBlock = (req,res,next) => {
+//POST /wallets/:contractcon
+export const getWalletBuys = (req,res,next) => {
   const values = req.body;
   console.log(req.params.blockNumber)
   conn.query(
-    `SELECT * from MainSwaps where wallet in (?) and blockNumber = ${req.params.blockNumber}`,
+    `SELECT count(txHash) as count from MainSwaps where wallet in (?) and contract = "${req.params.contract}"`,
     [values],
     function (err, data, fields) {
       if (err) return next(new AppError(err, 500));
