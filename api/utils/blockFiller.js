@@ -80,6 +80,28 @@ export class BlockFiller {
         }
     }
 
+    async fillBlocksFromBehind(blocks) {
+        // step 1: get first blockNumber in your database.
+        const response = await api.get(`/api/swaps/1?min=true`);
+        const { minBlockNumber } = response.data.data[0];
+        console.log('starting block: ', minBlockNumber)
+        await this.runSwapParseSqlRoutine(minBlockNumber-blocks, minBlockNumber-1, true)
+        
+    }
+
+    async fillBetween(block1,block2) {
+        console.log('starting block: ', block1, 'ending block: ', block2)
+        await this.runSwapParseSqlRoutine(block1, block2)
+    }
+
+    async fillUpToHighestBlock() {
+        const response = await api.get(`/api/swaps/1?max=true`);
+        const { maxBlockNumber } = response.data.data[0];
+        const blockNumber = await this.archiveProvider.getBlockNumber();
+        console.log('starting block: ', maxBlockNumber, 'ending block:', blockNumber)
+        await this.runSwapParseSqlRoutine(maxBlockNumber+1, blockNumber)
+    }
+
     async getAllSwapsFromContract(contract, table, blockRangeEnd) {
         //for now will have to specify if it's univ2 or univ3...
         // const pairAddress = new ethers.Contract(contract, )
@@ -213,7 +235,7 @@ export class BlockFiller {
             time1 = Date.now();
             if (this.swapParser.allSwapsData.length) {
                 try {
-                    await api.post('/api/blocks', this.swapParser.allSwapsData)
+                    await api.post('/api/swaps', this.swapParser.allSwapsData)
                 }catch(e) {
                     console.log(e.response.data)
                 }
@@ -222,7 +244,7 @@ export class BlockFiller {
             console.log('time to post all blocks: ', totalTime)
             console.log('DONE.')
             // if (stats) {
-            //     const { data: {data: _data}} = await api.get('/api/blocks/1?count=true');
+            //     const { data: {data: _data}} = await api.get('/api/swaps/1?count=true');
 
             //     console.log('current block count: ', _data[0].count);
             // }

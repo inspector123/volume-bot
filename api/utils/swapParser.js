@@ -25,14 +25,16 @@ class SwapParser {
 
     currentBlockSwaps = [];
     httpProvider;
-    etherPrice = 1200;
-    btcPrice = 16900;
+    etherPrice = 1600;
+    btcPrice = 22000;
     allPairsData = [];
     newPairsData = [];
+    postedPairsData = [];
     allSwapsData = [];
     alreadyFoundPairs = [];
     pairsAsNumberSorted = [];
     pairAddress;
+    blockTimestamp;
 
 
 
@@ -50,10 +52,11 @@ class SwapParser {
             let swap;
             if (log.topics[0] == v2topic) {
                 swap = await this.handlev2Log(log);
+                return swap;
             } else if (log.topics[0] == v3topic) {
                 swap = await this.handlev3Log(log);
+                return swap;
             }
-            return swap;
         } catch(e) {
             console.log(e)
         }
@@ -62,10 +65,17 @@ class SwapParser {
 
     async postPair(pairBody) {
         try {
-            const response = await api.post(`/api/pairs`, pairBody)
+            const response = await api.post(`/api/pairs`, [pairBody])
         } catch(e) {
             console.log('error posting pair')
         }
+    }
+
+    async getBlockTimestamp(blockNumber) {
+        if (this.blockNumber != blockNumber) {
+            this.blockTimestamp = (await this.httpProvider.getBlock(blockNumber)).timestamp*1000;
+            return this.blockTimestamp
+        } else return this.blockTimestamp
     }
 
     async getAllPairs() {
@@ -77,66 +87,10 @@ class SwapParser {
         }
     }
 
-    reset() {
-        this.allPairsData = [];
-        this.newPairsData = [];
-        this.allSwapsData = [];
-        this.alreadyFoundPairs = [];
-    }
-
     getPair(pairAddress) {
-        const alreadyFoundPair = this.alreadyFoundPairs.filter(p=>p.pairAddress==pairAddress);
-        if (alreadyFoundPair.length) {
-            return alreadyFoundPair;
-        } else {
-            const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
-            if (findPair.length) {
-                this.alreadyFoundPairs = [...this.alreadyFoundPairs, findPair[0]];
-            }
-            return findPair
-        }
-
+        const findPair = this.allPairsData.filter(p=>p.pairAddress == pairAddress);
+        return findPair
     }
-
-    // convertPairs() {
-    //     const pairsAsNumber = this.allPairsData.map((p,i)=>{
-    //         return {
-    //             bigIntValue: ethers.BigNumber.from(p.pairAddress).toBigInt(),
-    //             ...p
-    //         }
-    //     })
-    //     this.pairsAsNumberSorted = pairsAsNumber.sort((a, b) => (a.bigIntValue < b.bigIntValue) ? -1 : ((a.bigIntValue > b.bigIntValue) ? 1 : 0));
-
-    // }
-
-    // findPairUsingBinarySearch(pairAddress) {
-    //     const pairAsBigInt = ethers.BigNumber.from(pairAddress).toBigInt();
-    //     const sortedIndex = this.binarySearch(pairAsBigInt, this.pairsAsNumberSorted);
-    //     if (sortedIndex > 0) return [this.pairsAsNumberSorted[sortedIndex]];
-    //     else return []
-    // }
-
-    // binarySearch(value, list) {
-    //     let low = 0;    //left endpoint
-    //     let high = list.length - 1;   //right endpoint
-    //     let position = -1;
-    //     let found = false;
-    //     let mid;
-    //     while (found === false && low <= high) {
-    //         mid = Math.floor((low + high)/2);
-    
-    //         if (list[mid].bigIntValue == value) {
-    //             found = true;
-    //             position = mid;
-    //         } else if (list[mid].bigIntValue > value) {  //if in lower half
-    //             high = mid - 1;
-    //         } else {  //in in upper half
-    //             low = mid + 1;
-    //         }
-    //     }
-    //     return position;
-    // }
-    
 
     addToSwaps(swap) {
         this.allSwapsData = [...this.allSwapsData, swap]
@@ -151,6 +105,7 @@ class SwapParser {
         
             const tx = await this.httpProvider.getTransaction(log.transactionHash);
             if (!acceptedRouters.includes(tx.to)) return; 
+            this.blockTimestamp = await this.getBlockTimestamp(tx.blockNumber);
             const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
@@ -239,7 +194,7 @@ class SwapParser {
             amount0Out 2,0
             */
             if (details.desiredTokenOut == 0 && details.poolTokenIn == 0)  { 
-                transactionType = 0;
+                transactionType = -1;
                 amountPoolTokenWithDecimals = details.poolTokenOut / 10**poolDecimals
                 amountDesiredTokenWithDecimals = details.desiredTokenIn / 10**desiredDecimals
                 if (isStableCoin) {
@@ -295,7 +250,8 @@ class SwapParser {
                 wallet: tx.from,
                 router: this.routerName(tx.to),
                 etherPrice: this.etherPrice,
-                marketCap: marketCap == null ? 0 : marketCap
+                marketCap: marketCap == null ? 0 : marketCap,
+                dateTime: new Date(this.blockTimestamp).toISOString()
             }
             
             //post to pairs if pairs didnt exist
@@ -311,10 +267,10 @@ class SwapParser {
                     token0TotalSupply,
                     token1TotalSupply
                 }
-
-                this.addToPairs(pairBody)
+                this.allPairsData = [...this.allPairsData, pairBody]
+                await this.postPair(pairBody);
             }
-            this.addToSwaps(v2SwapsToAdd)
+            //his.addToSwaps(v2SwapsToAdd)
             return v2SwapsToAdd
         } catch(e) {
             console.log(e)
@@ -326,6 +282,7 @@ class SwapParser {
             //console.log(receipt)
             const tx = await this.httpProvider.getTransaction(log.transactionHash)
             if (!acceptedRouters.includes(tx.to)) return; 
+            this.blockTimestamp = await this.getBlockTimestamp(tx.blockNumber);
             const pair = this.getPair(log.address);
             let token0, token1, 
             token0Decimals, token1Decimals, 
@@ -373,8 +330,6 @@ class SwapParser {
 
             let transactionType, usdVolume, usdPrice,amountPoolTokenWithDecimals, amountDesiredTokenWithDecimals;
             //set up contracts
-            const _desiredToken = new ethers.Contract(desiredToken, basicTokenABI, this.httpProvider);
-            const _poolToken = new ethers.Contract(poolToken, basicTokenABI, this.httpProvider);
             let poolDecimals, desiredDecimals, desiredSymbol, totalSupply, poolSymbol;
             //set pool / decimal attributes
             poolDecimals = token0 == poolToken ? token0Decimals : token1Decimals;
@@ -396,6 +351,7 @@ class SwapParser {
                 details.desiredTokenAmount = parsedLog.args.amount1,
                 details.poolTokenAmount = parsedLog.args.amount0
             }
+            //console.log(log.transactionHash, details)
             amountDesiredTokenWithDecimals = details.desiredTokenAmount / 10**desiredDecimals;
             amountPoolTokenWithDecimals = details.poolTokenAmount / 10 ** poolDecimals;
             const isStableCoin = [USDC,USDT,DAI,FRAX].includes(poolToken);
@@ -407,29 +363,29 @@ class SwapParser {
                 transactionType = 1;
                 if (isStableCoin) {
                     usdVolume = amountPoolTokenWithDecimals;
-                    usdPrice = amountPoolTokenWithDecimals / -1*amountDesiredTokenWithDecimals;
+                    usdPrice = amountPoolTokenWithDecimals/amountDesiredTokenWithDecimals*-1;
                 } 
-                if (isWeth) {
+                else if (isWeth) {
                     usdVolume = amountPoolTokenWithDecimals  * this.etherPrice ;
-                    usdPrice = (amountPoolTokenWithDecimals * this.etherPrice )/ -1*amountDesiredTokenWithDecimals;
+                    usdPrice = amountPoolTokenWithDecimals/amountDesiredTokenWithDecimals * this.etherPrice * -1;
                 }
-                if (isWBTC) {
+                else if (isWBTC) {
                     usdVolume = amountPoolTokenWithDecimals  * this.btcPrice ;
-                    usdPrice = (amountPoolTokenWithDecimals * this.btcPrice )/ -1*amountDesiredTokenWithDecimals;
+                    usdPrice = amountPoolTokenWithDecimals/amountDesiredTokenWithDecimals * this.btcPrice * -1;
                 }
             } 
-            if (details.poolTokenAmount < 0) {
+            else if (details.poolTokenAmount < 0) {
                 
-                transactionType = 0;
+                transactionType = -1;
                 if (isStableCoin) {
                     usdVolume = -1*amountPoolTokenWithDecimals;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals;
                 } 
-                if (isWeth) {
+                else if (isWeth) {
                     usdVolume = -1*(amountPoolTokenWithDecimals ) * this.etherPrice;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals * this.etherPrice;
                 }
-                if (isWBTC) {
+                else if (isWBTC) {
                     usdVolume = -1*(amountPoolTokenWithDecimals ) * this.btcPrice;
                     usdPrice = -1*amountPoolTokenWithDecimals / amountDesiredTokenWithDecimals * this.btcPrice;
                 }
@@ -456,7 +412,8 @@ class SwapParser {
                 wallet: tx.from,
                 router: this.routerName(tx.to),
                 etherPrice: this.etherPrice,
-                marketCap: marketCap == null ? 0 : marketCap
+                marketCap: marketCap == null ? 0 : marketCap,
+                dateTime: new Date(this.blockTimestamp).toISOString()
             }
             //post to pairs if pairs didnt exist
             if (!pair.length) {
@@ -472,9 +429,10 @@ class SwapParser {
                     token1TotalSupply
                 }
 
-                this.addToPairs(pairBody)
+                this.allPairsData = [...this.allPairsData, pairBody]
+                await this.postPair(pairBody)
             }
-            this.addToSwaps(v3Swap)
+            //this.addToSwaps(v3Swap)
             return v3Swap
         }
         catch(e) {
@@ -525,6 +483,14 @@ class SwapParser {
                 return "UniswapV2";
             case OneInchV4Router: 
                 return "1InchV4";
+            case Constants.UniswapUniversalRouter:
+                return "UniswapUniversalRouter";
+            case Constants.MetamaskSwap:
+                return "MetamaskRouter";
+            case Constants.coinbasewalletProxy0x:
+                return "CoinbaseWallet0x"
+            case Constants.UniswapV3:
+                return "UniswapV3";
             default: 
                 return address;
         }
